@@ -1,0 +1,13 @@
+{
+  "name": "cont-acesso-sanar",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter api dev & pnpm --filter web-portaria dev",
+    "build": "pnpm -r build",
+    "migrate": "pnpm --filter api migrate"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
