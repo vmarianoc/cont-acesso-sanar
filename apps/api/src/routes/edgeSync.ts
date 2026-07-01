@@ -39,31 +39,30 @@ const edgeSyncRoutes: FastifyPluginAsync = async (fastify) => {
 
     const { schema_name, eventos } = parsed.data
 
-    await fastify.db.unsafe(`SET search_path TO ${schema_name}, public`)
-
-    const inserted: unknown[] = []
-    for (const ev of eventos) {
-      const id = uuidv4()
-      const rows = await fastify.db.unsafe(
-        `INSERT INTO eventos (id, dispositivo_id, pessoa_id, tipo, resultado, metodo, foto_url, criado_em)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT DO NOTHING
-         RETURNING *`,
-        [
-          id,
-          ev.dispositivo_id,
-          ev.pessoa_id ?? null,
-          ev.tipo,
-          ev.resultado,
-          ev.metodo,
-          ev.foto_url ?? null,
-          ev.ocorrido_em,
-        ]
-      )
-      if (rows.length > 0) inserted.push(rows[0])
-    }
-
-    await fastify.db.unsafe(`SET search_path TO public`)
+    const inserted = await fastify.withTenant(schema_name, async (sql) => {
+      const rows: unknown[] = []
+      for (const ev of eventos) {
+        const id = uuidv4()
+        const result = await sql.unsafe(
+          `INSERT INTO eventos (id, dispositivo_id, pessoa_id, tipo, resultado, metodo, foto_url, criado_em)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT DO NOTHING
+           RETURNING *`,
+          [
+            id,
+            ev.dispositivo_id,
+            ev.pessoa_id ?? null,
+            ev.tipo,
+            ev.resultado,
+            ev.metodo,
+            ev.foto_url ?? null,
+            ev.ocorrido_em,
+          ]
+        )
+        if (result.length > 0) rows.push(result[0])
+      }
+      return rows
+    })
 
     return reply.status(200).send({ data: { sincronizados: inserted.length } })
   })
@@ -78,16 +77,14 @@ const edgeSyncRoutes: FastifyPluginAsync = async (fastify) => {
 
     const { dispositivo_id, schema_name, versao_fw, status } = parsed.data
 
-    await fastify.db.unsafe(`SET search_path TO ${schema_name}, public`)
-
-    await fastify.db.unsafe(
-      `UPDATE sync_queue
-       SET ultimo_heartbeat = NOW(), status_dispositivo = $1, versao_fw = COALESCE($2, versao_fw)
-       WHERE dispositivo_id = $3`,
-      [status, versao_fw ?? null, dispositivo_id]
-    )
-
-    await fastify.db.unsafe(`SET search_path TO public`)
+    await fastify.withTenant(schema_name, async (sql) => {
+      await sql.unsafe(
+        `UPDATE sync_queue
+         SET ultimo_heartbeat = NOW(), status_dispositivo = $1, versao_fw = COALESCE($2, versao_fw)
+         WHERE dispositivo_id = $3`,
+        [status, versao_fw ?? null, dispositivo_id]
+      )
+    })
 
     return reply.status(200).send({ data: { recebido: true, servidor_em: new Date().toISOString() } })
   })
@@ -101,17 +98,15 @@ const edgeSyncRoutes: FastifyPluginAsync = async (fastify) => {
       })
     }
 
-    await fastify.db.unsafe(`SET search_path TO ${query.schema_name}, public`)
-
-    const rows = await fastify.db.unsafe(
-      `SELECT * FROM sync_queue
-       WHERE dispositivo_id = $1 AND executado = false
-       ORDER BY criado_em ASC
-       LIMIT 50`,
-      [query.dispositivo_id]
-    )
-
-    await fastify.db.unsafe(`SET search_path TO public`)
+    const rows = await fastify.withTenant(query.schema_name, async (sql) => {
+      return sql.unsafe(
+        `SELECT * FROM sync_queue
+         WHERE dispositivo_id = $1 AND executado = false
+         ORDER BY criado_em ASC
+         LIMIT 50`,
+        [query.dispositivo_id]
+      )
+    })
 
     return reply.status(200).send({ data: rows })
   })

@@ -1,5 +1,6 @@
+import 'dotenv/config'
 import postgres from 'postgres'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -30,14 +31,32 @@ async function run() {
     SELECT id, schema_name FROM public.tenants WHERE ativo = true
   `
 
-  const tenantSql = await readFile(join(MIGRATIONS_DIR, '002_tenant_schema.sql'), 'utf-8')
+  const files = await readdir(MIGRATIONS_DIR)
+  const tenantMigrations = files
+    .filter((f) => f.endsWith('.sql') && f !== '001_public_schema.sql')
+    .sort()
+
+  const tenantSql = await Promise.all(
+    tenantMigrations.map(async (f) => ({
+      nome: f,
+      sql: await readFile(join(MIGRATIONS_DIR, f), 'utf-8'),
+    }))
+  )
 
   for (const tenant of tenants) {
     console.log(`  Migrating tenant schema: ${tenant.schema_name}`)
     await sql.unsafe(`CREATE SCHEMA IF NOT EXISTS ${tenant.schema_name}`)
-    await sql.unsafe(`SET search_path TO ${tenant.schema_name}, public`)
-    await sql.unsafe(tenantSql)
-    await sql.unsafe(`SET search_path TO public`)
+    await sql.reserve().then(async (reserved) => {
+      try {
+        await reserved.unsafe(`SET search_path TO ${tenant.schema_name}, public`)
+        for (const migration of tenantSql) {
+          console.log(`    ${migration.nome}`)
+          await reserved.unsafe(migration.sql)
+        }
+      } finally {
+        reserved.release()
+      }
+    })
     console.log(`  Done: ${tenant.schema_name}`)
   }
 

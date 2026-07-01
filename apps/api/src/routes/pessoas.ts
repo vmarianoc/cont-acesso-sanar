@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
+import { registrarAuditoria } from '../services/auditoriaService.js'
 
 const CreatePessoaBody = z.object({
   nome: z.string().min(2),
@@ -20,7 +21,7 @@ const pessoasRoutes: FastifyPluginAsync = async (fastify) => {
     const offset = (page - 1) * limit
 
     const conditions: string[] = []
-    const params: unknown[] = []
+    const params: any[] = []
 
     if (query.ativo !== undefined) {
       conditions.push(`ativo = $${params.push(query.ativo === 'true')}`)
@@ -30,7 +31,7 @@ const pessoasRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
-    const rows = await fastify.db.unsafe(
+    const rows = await request.tenantDb!.unsafe(
       `SELECT * FROM pessoas ${where} ORDER BY nome LIMIT ${limit} OFFSET ${offset}`,
       params
     )
@@ -49,12 +50,21 @@ const pessoasRoutes: FastifyPluginAsync = async (fastify) => {
     const { nome, cpf, rg, foto_url, tipo } = parsed.data
     const id = uuidv4()
 
-    const rows = await fastify.db.unsafe(
+    const rows = await request.tenantDb!.unsafe(
       `INSERT INTO pessoas (id, nome, cpf, rg, foto_url, tipo)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
       [id, nome, cpf ?? null, rg ?? null, foto_url ?? null, tipo]
     )
+
+    await registrarAuditoria(request.tenantDb!, {
+      usuario_id: (request.user as any).sub,
+      acao: 'INSERT',
+      tabela: 'pessoas',
+      registro_id: id,
+      dados_depois: rows[0] as Record<string, unknown>,
+      ip: request.ip,
+    })
 
     return reply.status(201).send({ data: rows[0] })
   })

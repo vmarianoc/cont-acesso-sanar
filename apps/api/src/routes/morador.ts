@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
+import { registrarAuditoria } from '../services/auditoriaService.js'
 
 const UpdatePerfilBody = z.object({
   nome: z.string().min(2).optional(),
@@ -27,7 +28,7 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/morador/perfil', async (request, reply) => {
     const userId = (request as any).user.sub
 
-    const rows = await fastify.db.unsafe(
+    const rows = await request.tenantDb!.unsafe(
       `SELECT p.* FROM pessoas p
        INNER JOIN usuarios_tenant u ON u.pessoa_id = p.id
        WHERE u.id = $1 LIMIT 1`,
@@ -53,7 +54,7 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const updates: string[] = []
-    const params: unknown[] = []
+    const params: any[] = []
 
     if (parsed.data.nome) {
       updates.push(`nome = $${params.push(parsed.data.nome)}`)
@@ -70,7 +71,7 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
 
     updates.push(`atualizado_em = NOW()`)
 
-    const rows = await fastify.db.unsafe(
+    const rows = await request.tenantDb!.unsafe(
       `UPDATE pessoas SET ${updates.join(', ')}
        WHERE id = (SELECT pessoa_id FROM usuarios_tenant WHERE id = $${params.push(userId)})
        RETURNING *`,
@@ -83,7 +84,7 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/morador/veiculos', async (request, reply) => {
     const userId = (request as any).user.sub
 
-    const rows = await fastify.db.unsafe(
+    const rows = await request.tenantDb!.unsafe(
       `SELECT v.* FROM veiculos v
        INNER JOIN usuarios_tenant u ON u.pessoa_id = v.pessoa_id
        WHERE u.id = $1 AND v.ativo = true`,
@@ -105,12 +106,21 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
     const { placa, modelo, cor } = parsed.data
     const id = uuidv4()
 
-    const rows = await fastify.db.unsafe(
+    const rows = await request.tenantDb!.unsafe(
       `INSERT INTO veiculos (id, pessoa_id, placa, modelo, cor)
        SELECT $1, pessoa_id, $2, $3, $4 FROM usuarios_tenant WHERE id = $5
        RETURNING *`,
       [id, placa.toUpperCase(), modelo ?? null, cor ?? null, userId]
     )
+
+    await registrarAuditoria(request.tenantDb!, {
+      usuario_id: userId,
+      acao: 'INSERT',
+      tabela: 'veiculos',
+      registro_id: id,
+      dados_depois: rows[0] as Record<string, unknown>,
+      ip: request.ip,
+    })
 
     return reply.status(201).send({ data: rows[0] })
   })
@@ -118,7 +128,7 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/morador/visitantes/pre-autorizar', async (request, reply) => {
     const userId = (request as any).user.sub
 
-    const rows = await fastify.db.unsafe(
+    const rows = await request.tenantDb!.unsafe(
       `SELECT v.* FROM visitantes v
        INNER JOIN usuarios_tenant u ON u.id = $1
        WHERE v.pre_autorizado_por = u.pessoa_id
@@ -141,7 +151,7 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
     const { nome, documento, unidade_id, valido_de, valido_ate } = parsed.data
     const id = uuidv4()
 
-    const rows = await fastify.db.unsafe(
+    const rows = await request.tenantDb!.unsafe(
       `INSERT INTO visitantes (id, nome, documento, unidade_id, pre_autorizado_por, valido_de, valido_ate)
        SELECT $1, $2, $3, $4, pessoa_id, $5, $6 FROM usuarios_tenant WHERE id = $7
        RETURNING *`,

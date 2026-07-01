@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import EventFeed from '../components/EventFeed'
 import StatusBar from '../components/StatusBar'
 import { useAuth } from '../hooks/useAuth'
+import { useDispositivos } from '../hooks/useDispositivos'
+import { useRegistrarEvento } from '../hooks/useRegistrarEvento'
 
 const CAMERAS = [
   { id: '1', label: 'Entrada Principal' },
@@ -13,24 +15,41 @@ const CAMERAS = [
 
 function Clock() {
   const [time, setTime] = useState(new Date())
-  useState(() => {
+  useEffect(() => {
     const interval = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(interval)
-  })
+  }, [])
   return (
-    <span className="text-white font-mono text-sm">
-      {time.toLocaleTimeString('pt-BR')}
-    </span>
+    <span className="text-white font-mono text-sm">{time.toLocaleTimeString('pt-BR')}</span>
   )
 }
 
 export default function PortariaPage() {
   const navigate = useNavigate()
   const { logout } = useAuth()
+  const { data: dispositivos } = useDispositivos()
+  const registrar = useRegistrarEvento()
+
+  const dispositivoId = dispositivos?.[0]?.id
+  const [feedback, setFeedback] = useState<string | null>(null)
 
   const handleLogout = async () => {
     await logout()
     navigate('/login')
+  }
+
+  const registrarManual = async (tipo: string, resultado: 'liberado' | 'negado') => {
+    if (!dispositivoId) {
+      setFeedback('Nenhum ponto de acesso configurado')
+      return
+    }
+    try {
+      await registrar.mutateAsync({ dispositivo_id: dispositivoId, tipo, resultado, metodo: 'manual' })
+      setFeedback(`${tipo} registrado (${resultado})`)
+    } catch {
+      setFeedback('Falha ao registrar evento')
+    }
+    setTimeout(() => setFeedback(null), 3000)
   }
 
   return (
@@ -93,13 +112,25 @@ export default function PortariaPage() {
 
       {/* Action bar */}
       <footer className="bg-white border-t border-gray-200 px-4 py-2 flex items-center gap-3 flex-shrink-0">
-        <button className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+        <button
+          onClick={() => registrarManual('abertura_cancela', 'liberado')}
+          disabled={registrar.isPending}
+          className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors disabled:opacity-50"
+        >
           Abrir Cancela
         </button>
-        <button className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+        <button
+          onClick={() => registrarManual('fechamento_cancela', 'liberado')}
+          disabled={registrar.isPending}
+          className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors disabled:opacity-50"
+        >
           Fechar Cancela
         </button>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+        <button
+          onClick={() => registrarManual('acesso_manual', 'liberado')}
+          disabled={registrar.isPending}
+          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors disabled:opacity-50"
+        >
           Acesso Manual
         </button>
         <button
@@ -108,6 +139,7 @@ export default function PortariaPage() {
         >
           Cadastrar Visitante
         </button>
+        {feedback && <span className="text-sm text-gray-600 ml-2">{feedback}</span>}
       </footer>
     </div>
   )

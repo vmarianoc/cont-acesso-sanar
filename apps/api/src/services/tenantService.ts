@@ -1,14 +1,23 @@
 import postgres from 'postgres'
 import { v4 as uuidv4 } from 'uuid'
 import type { Tenant } from '../types/common.js'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+const MIGRATIONS_DIR = join(__dirname, '../db/migrations')
 
 export function getSchemaName(tenantId: string): string {
   return `tenant_${tenantId.replace(/-/g, '_')}`
+}
+
+async function loadTenantMigrations(): Promise<string[]> {
+  const files = await readdir(MIGRATIONS_DIR)
+  const tenantFiles = files
+    .filter((f) => f.endsWith('.sql') && f !== '001_public_schema.sql')
+    .sort()
+  return Promise.all(tenantFiles.map((f) => readFile(join(MIGRATIONS_DIR, f), 'utf-8')))
 }
 
 export async function createTenant(
@@ -19,8 +28,7 @@ export async function createTenant(
   const id = uuidv4()
   const schemaName = getSchemaName(id)
 
-  const tenantSqlPath = join(__dirname, '../db/migrations/002_tenant_schema.sql')
-  const tenantSql = await readFile(tenantSqlPath, 'utf-8')
+  const migrations = await loadTenantMigrations()
 
   await sql.begin(async (tx) => {
     await tx`
@@ -30,7 +38,9 @@ export async function createTenant(
 
     await tx.unsafe(`CREATE SCHEMA IF NOT EXISTS ${schemaName}`)
     await tx.unsafe(`SET search_path TO ${schemaName}, public`)
-    await tx.unsafe(tenantSql)
+    for (const migration of migrations) {
+      await tx.unsafe(migration)
+    }
     await tx.unsafe(`SET search_path TO public`)
   })
 

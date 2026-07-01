@@ -5,7 +5,11 @@ import { useAuth } from '../hooks/useAuth'
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
-  const [form, setForm] = useState({ email: '', senha: '', tenant_id: '' })
+  const [form, setForm] = useState({
+    email: '',
+    senha: '',
+    tenant_id: import.meta.env.VITE_TENANT_ID ?? '',
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

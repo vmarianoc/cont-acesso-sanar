@@ -34,7 +34,29 @@ const multiTenantPlugin: FastifyPluginAsync = async (fastify) => {
       })
     }
 
-    await fastify.db.unsafe(`SET search_path TO ${schemaName}, public`)
+    const reserved = await fastify.db.reserve()
+    await reserved.unsafe(`SET search_path TO ${schemaName}, public`)
+    request.tenantDb = reserved
+  })
+
+  const releaseTenantDb = async (request: FastifyRequest) => {
+    const reserved = request.tenantDb
+    if (!reserved) return
+    request.tenantDb = undefined
+    try {
+      await reserved.unsafe('SET search_path TO public')
+    } catch {
+      // ignore reset failures; connection is being returned to the pool
+    }
+    reserved.release()
+  }
+
+  fastify.addHook('onResponse', async (request) => {
+    await releaseTenantDb(request)
+  })
+
+  fastify.addHook('onError', async (request) => {
+    await releaseTenantDb(request)
   })
 }
 
