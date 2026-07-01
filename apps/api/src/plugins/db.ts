@@ -46,7 +46,7 @@ const dbPlugin: FastifyPluginAsync = async (fastify) => {
   })
 
   fastify.addHook('onClose', async () => {
-    await sql.end()
+    await sql.end({ timeout: 5 })
   })
 }
 

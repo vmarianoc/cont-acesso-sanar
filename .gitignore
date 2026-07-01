@@ -6,3 +6,6 @@ dist/
 *.log
 coverage/
 .turbo/
+
+# Redis dump artifact
+*.rdb

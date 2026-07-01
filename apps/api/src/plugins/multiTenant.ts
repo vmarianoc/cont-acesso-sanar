@@ -51,6 +51,10 @@ const multiTenantPlugin: FastifyPluginAsync = async (fastify) => {
     reserved.release()
   }
 
+  fastify.addHook('onSend', async (request) => {
+    await releaseTenantDb(request)
+  })
+
   fastify.addHook('onResponse', async (request) => {
     await releaseTenantDb(request)
   })

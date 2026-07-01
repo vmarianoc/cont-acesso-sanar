@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "pnpm --filter api dev & pnpm --filter web-portaria dev",
     "build": "pnpm -r build",
-    "migrate": "pnpm --filter api migrate"
+    "migrate": "pnpm --filter api migrate",
+    "seed": "pnpm --filter api seed",
+    "test": "pnpm --filter api test",
+    "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
     "typescript": "^5.4.5"
