@@ -23,11 +23,20 @@ export interface ImportTotais {
   juridicas: number
 }
 
+export interface LicencaImport {
+  plano: string
+  limite_unidades: number | null
+  unidades_atuais: number
+  novas_unidades: number
+  cabe: boolean
+}
+
 export interface ImportPreview {
   dry_run: true
   condominio: string
   bloco: string
   totais: ImportTotais
+  licenca: LicencaImport
   amostra: UnidadePreview[]
 }
 

@@ -7,6 +7,14 @@ import {
   mapRelatorioParaPlano,
   aplicarImportacao,
 } from '../services/pdfImportService.js'
+import {
+  getLicencaEfetiva,
+  contarUnidades,
+  contarDispositivos,
+  contarNovasNoImport,
+  assegurarCapacidade,
+  LicencaError,
+} from '../services/licencaService.js'
 
 const CreateUnidadeBody = z.object({
   bloco_id: z.string().uuid(),
@@ -30,6 +38,23 @@ const PERFIS_IMPORT = new Set(['admin', 'sindico', 'superadmin'])
 
 const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onRequest', fastify.authenticate)
+
+  fastify.get('/licenca', async (request, reply) => {
+    const user = request.user as { tenant_id: string }
+    const licenca = await getLicencaEfetiva(fastify.db, user.tenant_id)
+    const unidades = await contarUnidades(request.tenantDb!)
+    const dispositivos = await contarDispositivos(request.tenantDb!)
+    return reply.status(200).send({
+      data: {
+        plano: licenca.plano,
+        ativa: licenca.ativa,
+        validade: licenca.validade,
+        expirada: licenca.expirada,
+        limites: { unidades: licenca.maxUnidades, dispositivos: licenca.maxDispositivos },
+        uso: { unidades, dispositivos },
+      },
+    })
+  })
 
   // Importação de unidades/moradores a partir do relatório PDF do condomínio.
   // ?dry_run=true (padrão) apenas pré-visualiza; ?dry_run=false grava.
@@ -67,6 +92,18 @@ const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
       bloco: query.bloco,
     })
 
+    const tenantId = (request.user as any).tenant_id as string
+    const licenca = await getLicencaEfetiva(fastify.db, tenantId)
+    const atual = await contarUnidades(request.tenantDb!)
+    const novas = await contarNovasNoImport(
+      request.tenantDb!,
+      plano.condominioNome,
+      plano.bloco,
+      plano.unidades.map((u) => u.numero)
+    )
+    const cabe =
+      licenca.maxUnidades === null || atual + novas <= licenca.maxUnidades
+
     if (dryRun) {
       return reply.status(200).send({
         data: {
@@ -74,9 +111,25 @@ const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
           condominio: plano.condominioNome,
           bloco: plano.bloco,
           totais: plano.totais,
+          licenca: {
+            plano: licenca.plano,
+            limite_unidades: licenca.maxUnidades,
+            unidades_atuais: atual,
+            novas_unidades: novas,
+            cabe,
+          },
           amostra: plano.unidades.slice(0, 10),
         },
       })
+    }
+
+    try {
+      assegurarCapacidade(licenca, atual, novas)
+    } catch (err) {
+      if (err instanceof LicencaError) {
+        return reply.status(err.status).send({ erro: { codigo: err.codigo, mensagem: err.message } })
+      }
+      throw err
     }
 
     const resultado = await aplicarImportacao(request.tenantDb!, plano, {
@@ -168,6 +221,16 @@ const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(409).send({
         erro: { codigo: 'UNIDADE_DUPLICADA', mensagem: 'Já existe uma unidade com esse número no bloco' },
       })
+    }
+
+    const licenca = await getLicencaEfetiva(fastify.db, (request.user as any).tenant_id)
+    try {
+      assegurarCapacidade(licenca, await contarUnidades(db), 1)
+    } catch (err) {
+      if (err instanceof LicencaError) {
+        return reply.status(err.status).send({ erro: { codigo: err.codigo, mensagem: err.message } })
+      }
+      throw err
     }
 
     const id = uuidv4()

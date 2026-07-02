@@ -133,6 +133,22 @@ export default function ImportarPage() {
               <Stat label="Pessoas jurídicas" value={preview.totais.juridicas} />
             </div>
 
+            {!preview.licenca.cabe ? (
+              <div className="bg-red-50 border border-red-200 text-red-800 text-sm p-3 rounded-md">
+                Esta importação excede o limite do plano{' '}
+                <strong>{preview.licenca.plano.toUpperCase()}</strong> (
+                {preview.licenca.limite_unidades} unidades). Atuais:{' '}
+                {preview.licenca.unidades_atuais}, novas: {preview.licenca.novas_unidades}. Faça
+                upgrade do plano para importar.
+              </div>
+            ) : (
+              <div className="bg-green-50 border border-green-200 text-green-800 text-sm p-3 rounded-md">
+                Dentro do limite do plano {preview.licenca.plano.toUpperCase()} (
+                {preview.licenca.novas_unidades} novas ·{' '}
+                {preview.licenca.limite_unidades ?? '∞'} permitidas).
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -169,7 +185,8 @@ export default function ImportarPage() {
 
             <button
               onClick={handleConfirm}
-              disabled={loading !== null}
+              disabled={loading !== null || !preview.licenca.cabe}
+              title={!preview.licenca.cabe ? 'Excede o limite do plano' : undefined}
               className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
             >
               {loading === 'confirm' ? 'Importando...' : 'Confirmar importação'}

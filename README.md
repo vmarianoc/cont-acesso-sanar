@@ -100,6 +100,9 @@ migrations, testes e build a cada push/PR.
   faz upload do relatório "Contatos das unidades" do condomínio; com
   `?dry_run=true` (padrão) apenas pré-visualiza, e `?dry_run=false` grava
   (idempotente) condomínio/blocos/unidades/moradores/vínculos.
+- **Licenciamento**: limites por plano (START 50 / PRO 500 / ENTERPRISE ∞)
+  aplicados na criação de unidades e na importação; `GET /licenca` mostra
+  plano, limites e uso atual.
 - **Cadastro Vivo**: ao aprovar uma solicitação (`PATCH /aprovacoes/:id`), o
   sistema enfileira um comando para o Edge (`sync_queue`) e notifica o morador,
   de forma transacional.

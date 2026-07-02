@@ -1,6 +1,7 @@
 import postgres from 'postgres'
 import { v4 as uuidv4 } from 'uuid'
 import type { Tenant } from '../types/common.js'
+import { normalizarPlano, LIMITES_PLANO } from './licencaService.js'
 import { readFile, readdir } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -30,10 +31,19 @@ export async function createTenant(
 
   const migrations = await loadTenantMigrations()
 
+  const planoNorm = normalizarPlano(plano)
+  const limites = LIMITES_PLANO[planoNorm]
+
   await sql.begin(async (tx) => {
     await tx`
       INSERT INTO public.tenants (id, nome, schema_name, plano)
       VALUES (${id}, ${nome}, ${schemaName}, ${plano})
+    `
+
+    const validade = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    await tx`
+      INSERT INTO public.licencas (tenant_id, plano, max_unidades, max_dispositivos, validade)
+      VALUES (${id}, ${planoNorm}, ${limites.maxUnidades ?? 1000000}, ${limites.maxDispositivos ?? 1000000}, ${validade})
     `
 
     await tx.unsafe(`CREATE SCHEMA IF NOT EXISTS ${schemaName}`)
