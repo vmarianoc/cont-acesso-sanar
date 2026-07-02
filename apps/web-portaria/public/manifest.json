@@ -1,11 +1,11 @@
 {
-  "name": "Access Platform — Portaria",
+  "name": "condar — Portaria",
   "short_name": "Portaria",
   "description": "Sistema de controle de acesso condominial",
   "start_url": "/portaria",
   "display": "standalone",
-  "background_color": "#0c4a6e",
-  "theme_color": "#0369a1",
+  "background_color": "#1a1a1a",
+  "theme_color": "#d81e34",
   "orientation": "landscape",
   "icons": [
     {

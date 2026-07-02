@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import EventFeed from '../components/EventFeed'
 import StatusBar from '../components/StatusBar'
+import Logo from '../components/Logo'
 import { useAuth } from '../hooks/useAuth'
 import { useDispositivos } from '../hooks/useDispositivos'
 import { useRegistrarEvento } from '../hooks/useRegistrarEvento'
@@ -59,10 +60,7 @@ export default function PortariaPage() {
     <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
       {/* Header */}
       <header className="bg-brand-700 px-4 py-2 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="text-white font-bold text-lg">Access Platform</div>
-          <div className="text-white/60 text-sm">Portaria</div>
-        </div>
+        <Logo subtitle="Portaria" />
         <div className="flex items-center gap-6">
           <Clock />
           <StatusBar />

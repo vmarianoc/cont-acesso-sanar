@@ -1,6 +1,6 @@
-# Access Platform — Controle de Acesso Condominial
+# condar — Controle de Acesso Condominial
 
-Plataforma SaaS de controle de acesso e gestão condominial (multi-tenant, offline-first).
+condar é uma plataforma SaaS de controle de acesso e gestão condominial (multi-tenant, offline-first).
 Este repositório contém o MVP (Fase 1): **Cloud API** + **painel web da Portaria**.
 
 ## Documentação

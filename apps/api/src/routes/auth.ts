@@ -116,7 +116,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         return rows[0]?.email ?? user.sub
       })
 
-      const otpauth = authenticator.keyuri(email, 'Access Platform', secret)
+      const otpauth = authenticator.keyuri(email, 'condar', secret)
       return reply.status(200).send({ data: { secret, otpauth } })
     }
   )

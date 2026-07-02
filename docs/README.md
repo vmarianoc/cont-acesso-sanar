@@ -1,4 +1,4 @@
-# Documentação — Access Platform
+# Documentação — condar
 
 Documentação de produto e arquitetura da plataforma de controle de acesso condominial.
 

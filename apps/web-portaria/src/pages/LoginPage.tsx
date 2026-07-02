@@ -35,8 +35,11 @@ export default function LoginPage() {
     <div className="min-h-screen bg-brand-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Access Platform</h1>
-          <p className="text-brand-50/70 mt-2">Controle de Acesso Condominial</p>
+          <div className="inline-grid h-14 w-14 place-items-center rounded-2xl bg-white/15 mb-3">
+            <span className="text-3xl font-bold text-white">c</span>
+          </div>
+          <h1 className="text-3xl font-bold text-white lowercase tracking-tight">condar</h1>
+          <p className="text-brand-50/80 mt-2">Controle de acesso condominial</p>
         </div>
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Entrar na Portaria</h2>

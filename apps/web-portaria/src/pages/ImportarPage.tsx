@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import Logo from '../components/Logo'
 import {
   preVisualizarImportacao,
   confirmarImportacao,
@@ -67,10 +68,7 @@ export default function ImportarPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-brand-700 px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="text-white font-bold text-lg">Access Platform</div>
-          <div className="text-white/60 text-sm">Importar unidades</div>
-        </div>
+        <Logo subtitle="Importar unidades" />
         <button
           onClick={() => navigate('/portaria')}
           className="text-white/70 hover:text-white text-sm"
