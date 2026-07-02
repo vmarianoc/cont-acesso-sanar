@@ -11,7 +11,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 |---|---|---|---|
 | Edge Service — Windows Service | P0 | ⬜ | Fora deste repo (Edge é .NET 8 / Go); a Cloud já expõe `/edge/sync/*` para integrá-lo |
 | Controle de acesso (Hikvision) | P0 | ⬜ | Depende do SDK de hardware no Edge |
-| Cadastro de moradores e unidades | P0 | ✅ | CRUD de condomínios/blocos/unidades (`/condominios`, `/blocos`, `/unidades`) + gestão de ocupantes (`/unidades/:id/ocupantes`) com regra de vínculo principal único; `/pessoas` e seed prontos |
+| Cadastro de moradores e unidades | P0 | ✅ | CRUD de condomínios/blocos/unidades (`/condominios`, `/blocos`, `/unidades`) + gestão de ocupantes (`/unidades/:id/ocupantes`) com regra de vínculo principal único; `/pessoas` e seed prontos; UI de busca/gestão de ocupantes em `apps/web-sindico` (`/unidades`) |
 | Painel da portaria (web local) | P0 | ✅ | `apps/web-portaria` (PWA): feed de eventos, registro manual, visitantes, online/offline |
 | Liberação de visitantes com notificação | P0 | 🟡 | Pré-autorização + notificação (`notificacoes` + worker). Falta o fluxo em tempo real portaria↔app |
 | App Morador (iOS + Android) | P0 | 🟡 | App do morador **condar** (PWA mobile, `apps/web-morador`) com home, autorizar visitante, reservas e encomendas — funcional sobre a Cloud API. Falta empacotar como app nativo (React Native) |
@@ -41,9 +41,10 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 ## Próximos passos sugeridos
 
 1. Importação de unidades/moradores via PDF/CSV/Excel (P1) — parser reaproveitando o cadastro de `/unidades` e `/pessoas`.
-2. ~~Gestão de usuários do tenant~~ ✅ (`/usuarios` + tela no app do síndico: convidar, vincular pessoa, ativar/desativar). Falta UI web de administração de condomínio/blocos/unidades/ocupantes.
-3. Enforcement de licença (limites de unidades/ramais) + endpoint `/edge/validate-license`.
-4. App Morador / App Síndico (React Native) consumindo os endpoints existentes.
-5. Provider real de push (FCM/APNs) no worker de notificações.
+2. ~~Gestão de usuários do tenant~~ ✅ (`/usuarios` + tela no app do síndico: convidar, vincular pessoa, ativar/desativar).
+3. ~~UI web de administração de unidades/ocupantes~~ ✅ (`/unidades` no app do síndico: busca por número, listagem condomínio/bloco/unidade, vincular/desvincular ocupante). Falta UI para criar condomínio/bloco (hoje só via API).
+4. ~~Enforcement de licença~~ ✅ (limites de unidades por plano + `/edge/validate-license`).
+5. App Morador / App Síndico (React Native) consumindo os endpoints existentes.
+6. Provider real de push (FCM/APNs) no worker de notificações.
 
 > Este arquivo é um espelho vivo do progresso — atualize a cada iteração.

@@ -147,6 +147,7 @@ const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
       bloco_id?: string
       condominio_id?: string
       ativa?: string
+      busca?: string
       page?: string
       limit?: string
     }
@@ -159,6 +160,7 @@ const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
     if (query.bloco_id) conditions.push(`u.bloco_id = $${params.push(query.bloco_id)}`)
     if (query.condominio_id) conditions.push(`b.condominio_id = $${params.push(query.condominio_id)}`)
     if (query.ativa !== undefined) conditions.push(`u.ativa = $${params.push(query.ativa === 'true')}`)
+    if (query.busca) conditions.push(`u.numero ILIKE $${params.push('%' + query.busca + '%')}`)
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     const rows = await request.tenantDb!.unsafe(

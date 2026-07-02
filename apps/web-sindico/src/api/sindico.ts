@@ -43,6 +43,29 @@ export interface CreateUsuario {
   pessoa_id?: string
 }
 
+export interface Unidade {
+  id: string
+  numero: string
+  andar: number | null
+  ativa: boolean
+  bloco: { id: string; nome: string }
+  condominio: { id: string; nome: string }
+}
+
+export interface Ocupante {
+  id: string
+  pessoa_id: string
+  tipo_vinculo: 'proprietario' | 'inquilino' | 'dependente' | 'funcionario'
+  principal: boolean
+  pessoa_nome: string
+}
+
+export interface CreateOcupante {
+  pessoa_id: string
+  tipo_vinculo: Ocupante['tipo_vinculo']
+  principal: boolean
+}
+
 const get = <T>(url: string) => client.get(url).then((r) => r.data.data as T)
 
 export const fetchAprovacoes = (status?: string) =>
@@ -63,3 +86,18 @@ export const criarUsuario = (payload: CreateUsuario) =>
 
 export const atualizarUsuario = (id: string, payload: { perfil?: string; ativo?: boolean }) =>
   client.patch(`/usuarios/${id}`, payload).then((r) => r.data.data as Usuario)
+
+export const fetchUnidades = (busca?: string) =>
+  get<Unidade[]>(`/unidades${busca ? `?busca=${encodeURIComponent(busca)}` : ''}`)
+
+export const fetchOcupantes = (unidadeId: string) =>
+  get<Ocupante[]>(`/unidades/${unidadeId}/ocupantes`)
+
+export const adicionarOcupante = (unidadeId: string, payload: CreateOcupante) =>
+  client.post(`/unidades/${unidadeId}/ocupantes`, payload).then((r) => r.data.data as Ocupante)
+
+export const removerOcupante = (unidadeId: string, vinculoId: string) =>
+  client.delete(`/unidades/${unidadeId}/ocupantes/${vinculoId}`)
+
+export const fetchPessoas = (busca?: string) =>
+  get<PessoaResumo[]>(`/pessoas?limit=100${busca ? `&busca=${encodeURIComponent(busca)}` : ''}`)
