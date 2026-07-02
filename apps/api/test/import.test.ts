@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import * as XLSX from 'xlsx'
 import {
   mapRelatorioParaPlano,
   aplicarImportacao,
   mapTipoVinculo,
   type RelatorioParseado,
 } from '../src/services/pdfImportService.js'
+import { parseCsv, parseExcel } from '../src/services/sheetImportService.js'
 import { makeSql, createTestTenant, dropTestTenant, type TestTenant } from './helpers.js'
 
 const relatorio: RelatorioParseado = {
@@ -112,5 +114,51 @@ describe('aplicarImportacao', () => {
       await reserved.unsafe('SET search_path TO public')
       reserved.release()
     }
+  })
+})
+
+const linhasPlanilha = [
+  { unidade: '101 01', nome: 'Ana Dona', tipo: 'Proprietário', cpf: '111.111.111-11', email: 'ana@x.com', telefone: '', fracao: '0.1', condominio: 'Cond Planilha' },
+  { unidade: '101 01', nome: 'Beto Mora', tipo: 'Residente', cpf: '', email: '', telefone: '', fracao: '', condominio: '' },
+  { unidade: '000', nome: 'Empresa X LTDA', tipo: 'Proprietário', cpf: '11.222.333/0001-44', email: 'e@x.com', telefone: '', fracao: '0', condominio: '' },
+]
+
+function esperarRelatorioDaPlanilha(relatorio: RelatorioParseado) {
+  expect(relatorio.condominioNome).toBe('Cond Planilha')
+  expect(relatorio.unidades).toHaveLength(2)
+
+  const u101 = relatorio.unidades.find((u) => u.codigo === '101 01')!
+  expect(u101.fracao).toBe('0.1')
+  expect(u101.ocupantes).toHaveLength(2)
+  expect(u101.ocupantes[0]).toMatchObject({ nome: 'Ana Dona', tipo: 'Proprietário', cpf: '111.111.111-11' })
+  expect(u101.ocupantes[1]).toMatchObject({ nome: 'Beto Mora', tipo: 'Residente' })
+
+  const u000 = relatorio.unidades.find((u) => u.codigo === '000')!
+  expect(u000.ocupantes[0]).toMatchObject({ nome: 'Empresa X LTDA', cpf: '11.222.333/0001-44' })
+}
+
+describe('parseCsv', () => {
+  it('agrupa linhas planas em unidades/ocupantes', () => {
+    const cabecalho = 'unidade,nome,tipo,cpf,email,telefone,fracao,condominio'
+    const linhas = linhasPlanilha.map((l) =>
+      [l.unidade, l.nome, l.tipo, l.cpf, l.email, l.telefone, l.fracao, l.condominio].join(',')
+    )
+    const csv = [cabecalho, ...linhas].join('\n')
+    esperarRelatorioDaPlanilha(parseCsv(Buffer.from(csv, 'utf-8')))
+  })
+
+  it('rejeita planilha sem as colunas obrigatórias', () => {
+    const csv = 'nome,cpf\nAna Dona,111.111.111-11'
+    expect(() => parseCsv(Buffer.from(csv, 'utf-8'))).toThrow(/unidade/)
+  })
+})
+
+describe('parseExcel', () => {
+  it('agrupa linhas da primeira aba em unidades/ocupantes', () => {
+    const planilha = XLSX.utils.json_to_sheet(linhasPlanilha)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, planilha, 'Unidades')
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer
+    esperarRelatorioDaPlanilha(parseExcel(buffer))
   })
 })

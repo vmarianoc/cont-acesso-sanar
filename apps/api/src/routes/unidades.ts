@@ -6,7 +6,9 @@ import {
   parsePdf,
   mapRelatorioParaPlano,
   aplicarImportacao,
+  type RelatorioParseado,
 } from '../services/pdfImportService.js'
+import { parseCsv, parseExcel } from '../services/sheetImportService.js'
 import {
   getLicencaEfetiva,
   contarUnidades,
@@ -56,7 +58,8 @@ const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
     })
   })
 
-  // Importação de unidades/moradores a partir do relatório PDF do condomínio.
+  // Importação de unidades/moradores a partir de um arquivo do condomínio
+  // (PDF do relatório "Contatos das unidades", CSV ou Excel).
   // ?dry_run=true (padrão) apenas pré-visualiza; ?dry_run=false grava.
   fastify.post('/unidades/importar', async (request, reply) => {
     const user = request.user as { perfil: string; sub: string }
@@ -69,21 +72,38 @@ const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
     const file = await (request as any).file()
     if (!file) {
       return reply.status(400).send({
-        erro: { codigo: 'ARQUIVO_FALTANDO', mensagem: 'Envie o PDF no campo "file"' },
+        erro: { codigo: 'ARQUIVO_FALTANDO', mensagem: 'Envie o arquivo no campo "file"' },
       })
     }
     const buffer = await file.toBuffer()
 
+    const extensao = (file.filename ?? '').split('.').pop()?.toLowerCase()
+    const parsers: Record<string, (buf: Buffer) => Promise<RelatorioParseado> | RelatorioParseado> = {
+      pdf: parsePdf,
+      csv: parseCsv,
+      xlsx: parseExcel,
+      xls: parseExcel,
+    }
+    const parser = extensao ? parsers[extensao] : undefined
+    if (!parser) {
+      return reply.status(400).send({
+        erro: {
+          codigo: 'FORMATO_NAO_SUPORTADO',
+          mensagem: 'Envie um arquivo .pdf, .csv, .xlsx ou .xls',
+        },
+      })
+    }
+
     const query = request.query as { dry_run?: string; condominio?: string; bloco?: string }
     const dryRun = query.dry_run !== 'false'
 
-    let relatorio
+    let relatorio: RelatorioParseado
     try {
-      relatorio = await parsePdf(buffer)
+      relatorio = await parser(buffer)
     } catch (err) {
-      request.log.error({ err }, 'falha ao parsear PDF de importação')
+      request.log.error({ err }, 'falha ao parsear arquivo de importação')
       return reply.status(422).send({
-        erro: { codigo: 'PDF_INVALIDO', mensagem: 'Não foi possível ler o PDF enviado' },
+        erro: { codigo: 'ARQUIVO_INVALIDO', mensagem: 'Não foi possível ler o arquivo enviado' },
       })
     }
 
