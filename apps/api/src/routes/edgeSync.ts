@@ -1,6 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
+import { enqueueNotificacao } from '../workers/notificacoesQueue.js'
+
+const TITULO_RESULTADO: Record<string, string> = {
+  liberado: 'Acesso liberado',
+  negado: 'Acesso negado',
+}
 
 const EventoBody = z.object({
   dispositivo_id: z.string().uuid(),
@@ -39,6 +45,8 @@ const edgeSyncRoutes: FastifyPluginAsync = async (fastify) => {
 
     const { schema_name, eventos } = parsed.data
 
+    const paraNotificar: { pessoa_id: string; titulo: string; mensagem: string; foto_url: string | null }[] = []
+
     const inserted = await fastify.withTenant(schema_name, async (sql) => {
       const rows: unknown[] = []
       for (const ev of eventos) {
@@ -59,10 +67,38 @@ const edgeSyncRoutes: FastifyPluginAsync = async (fastify) => {
             ev.ocorrido_em,
           ]
         )
-        if (result.length > 0) rows.push(result[0])
+        if (result.length === 0) continue
+        rows.push(result[0])
+
+        const titulo = TITULO_RESULTADO[ev.resultado]
+        if (!ev.pessoa_id || !titulo) continue
+
+        const mensagem = `${titulo} · método ${ev.metodo}`
+        const fotoUrl = ev.foto_url ?? null
+        await sql.unsafe(
+          `INSERT INTO notificacoes (id, pessoa_id, titulo, mensagem, tipo, dados)
+           VALUES ($1, $2, $3, $4, 'acesso', $5)`,
+          [uuidv4(), ev.pessoa_id, titulo, mensagem, sql.json({ evento_id: id, foto_url: fotoUrl })]
+        )
+        paraNotificar.push({ pessoa_id: ev.pessoa_id, titulo, mensagem, foto_url: fotoUrl })
       }
       return rows
     })
+
+    for (const n of paraNotificar) {
+      try {
+        await enqueueNotificacao({
+          schema_name,
+          pessoa_id: n.pessoa_id,
+          titulo: n.titulo,
+          mensagem: n.mensagem,
+          tipo: 'acesso',
+          dados: { foto_url: n.foto_url },
+        })
+      } catch (err) {
+        request.log.warn({ err }, 'falha ao enfileirar notificação de acesso')
+      }
+    }
 
     return reply.status(200).send({ data: { sincronizados: inserted.length } })
   })

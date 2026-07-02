@@ -21,6 +21,7 @@ import usuariosRoutes from './routes/usuarios.js'
 import condominiosRoutes from './routes/condominios.js'
 import blocosRoutes from './routes/blocos.js'
 import unidadesRoutes from './routes/unidades.js'
+import pushRoutes from './routes/push.js'
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -65,6 +66,7 @@ export async function buildApp() {
   await fastify.register(condominiosRoutes)
   await fastify.register(blocosRoutes)
   await fastify.register(unidadesRoutes)
+  await fastify.register(pushRoutes)
 
   fastify.setErrorHandler((error, request, reply) => {
     fastify.log.error({ err: error, requestId: request.id }, 'Unhandled error')

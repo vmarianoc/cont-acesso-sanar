@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin'
 import postgres from 'postgres'
 import type { FastifyPluginAsync } from 'fastify'
+import { withTenant } from '../services/tenantDb.js'
 
 type ReservedSql = Awaited<ReturnType<postgres.Sql['reserve']>>
 
@@ -27,22 +28,11 @@ const dbPlugin: FastifyPluginAsync = async (fastify) => {
 
   fastify.decorate('db', sql)
 
-  fastify.decorate('withTenant', async function <T>(
+  fastify.decorate('withTenant', function <T>(
     schemaName: string,
     fn: (reserved: ReservedSql) => Promise<T>
   ): Promise<T> {
-    const reserved = await sql.reserve()
-    try {
-      await reserved.unsafe(`SET search_path TO ${schemaName}, public`)
-      return await fn(reserved)
-    } finally {
-      try {
-        await reserved.unsafe('SET search_path TO public')
-      } catch {
-        // ignore reset failures; connection is being returned to the pool
-      }
-      reserved.release()
-    }
+    return withTenant(sql, schemaName, fn)
   })
 
   fastify.addHook('onClose', async () => {

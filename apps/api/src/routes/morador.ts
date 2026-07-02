@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
+import { enqueueNotificacao } from '../workers/notificacoesQueue.js'
 
 const UpdatePerfilBody = z.object({
   nome: z.string().min(2).optional(),
@@ -17,6 +18,7 @@ const CreateVeiculoBody = z.object({
 const PreAutorizarVisitanteBody = z.object({
   nome: z.string().min(2),
   documento: z.string().optional(),
+  foto_url: z.string().url().optional(),
   unidade_id: z.string().uuid(),
   valido_de: z.string().datetime(),
   valido_ate: z.string().datetime(),
@@ -148,17 +150,39 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
       })
     }
 
-    const { nome, documento, unidade_id, valido_de, valido_ate } = parsed.data
+    const { nome, documento, foto_url, unidade_id, valido_de, valido_ate } = parsed.data
     const id = uuidv4()
+    const db = request.tenantDb!
 
-    const rows = await request.tenantDb!.unsafe(
-      `INSERT INTO visitantes (id, nome, documento, unidade_id, pre_autorizado_por, valido_de, valido_ate)
-       SELECT $1, $2, $3, $4, pessoa_id, $5, $6 FROM usuarios_tenant WHERE id = $7
+    const rows = await db.unsafe(
+      `INSERT INTO visitantes (id, nome, documento, foto_url, unidade_id, pre_autorizado_por, valido_de, valido_ate)
+       SELECT $1, $2, $3, $4, $5, pessoa_id, $6, $7 FROM usuarios_tenant WHERE id = $8
        RETURNING *`,
-      [id, nome, documento ?? null, unidade_id, valido_de, valido_ate, userId]
+      [id, nome, documento ?? null, foto_url ?? null, unidade_id, valido_de, valido_ate, userId]
     )
+    const visitante = rows[0] as Record<string, any>
 
-    return reply.status(201).send({ data: rows[0] })
+    const titulo = 'Visitante pré-autorizado'
+    const mensagem = `${nome} foi pré-autorizado(a) para acessar sua unidade.`
+    await db.unsafe(
+      `INSERT INTO notificacoes (id, pessoa_id, titulo, mensagem, tipo, dados)
+       VALUES ($1, $2, $3, $4, 'visita', $5)`,
+      [uuidv4(), visitante.pre_autorizado_por, titulo, mensagem, db.json({ visitante_id: id, foto_url: foto_url ?? null })]
+    )
+    try {
+      await enqueueNotificacao({
+        schema_name: (request.user as any).schema_name,
+        pessoa_id: visitante.pre_autorizado_por,
+        titulo,
+        mensagem,
+        tipo: 'visita',
+        dados: { foto_url: foto_url ?? null },
+      })
+    } catch (err) {
+      request.log.warn({ err }, 'falha ao enfileirar notificação de visitante')
+    }
+
+    return reply.status(201).send({ data: visitante })
   })
 }
 

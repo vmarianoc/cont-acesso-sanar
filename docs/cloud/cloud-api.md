@@ -107,10 +107,14 @@ X-Edge-Token: <current-token>
 
 ### Notificações push
 
+Implementado via FCM (`firebase-admin`), cobrindo Android/iOS/Web. Nomeado
+`/push/tokens` (e não `/dispositivos/...`) para não colidir com `/dispositivos`,
+que já designa o hardware de controle de acesso (catracas).
+
 | Método | Endpoint | Descrição |
 |---|---|---|
-| POST | `/dispositivos/registrar` | Registrar token FCM/APNs |
-| DELETE | `/dispositivos/:token` | Remover dispositivo |
+| POST | `/push/tokens` | Registrar (ou reativar) o token de push do dispositivo do usuário autenticado |
+| DELETE | `/push/tokens/:token` | Remover (soft-delete) um token de push |
 
 ### Webhooks (ENTERPRISE)
 
