@@ -16,7 +16,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | Liberação de visitantes com notificação | P0 | 🟡 | Pré-autorização + notificação (`notificacoes` + worker). Falta o fluxo em tempo real portaria↔app |
 | App Morador (iOS + Android) | P0 | 🟡 | App do morador **condar** (PWA mobile, `apps/web-morador`) com home, autorizar visitante, reservas e encomendas — funcional sobre a Cloud API. Falta empacotar como app nativo (React Native) |
 | Atualização cadastral com aprovação | P0 | ✅ | Fluxo de aprovações (`/aprovacoes`) com histórico, comando ao Edge e auditoria |
-| App Síndico — central de aprovações | P0 | 🟡 | API de aprovações pronta; app dedicado não iniciado |
+| App Síndico — central de aprovações | P0 | 🟡 | App do síndico **condar** (PWA, `apps/web-sindico`) com painel de gestão, central de aprovações (aprovar/reprovar) e visão de licença/uso. Falta empacotar nativo |
 | Cloud API — auth, sync, push | P0 | ✅ | JWT+refresh, `/edge/sync/*`; push via BullMQ (stub FCM/APNs) |
 | Multi-tenant (schema per tenant) | P0 | ✅ | Conexão reservada por requisição + `search_path` isolado; teste de isolamento sob concorrência |
 | Licenciamento básico (START e PRO) | P0 | ✅ | Licença criada junto do tenant (com `license_key`); limites por plano (START 50 / PRO 500 / ENTERPRISE ∞) aplicados em `POST /unidades` e na importação; `GET /licenca` (plano/limites/uso) e `POST /edge/validate-license` (validação pelo Edge com vínculo de hardware por fingerprint e modo degradado) |

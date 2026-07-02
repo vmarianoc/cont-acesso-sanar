@@ -17,7 +17,9 @@ Monorepo com pnpm workspaces:
 apps/api            Cloud API — Node.js 20 + Fastify 4 + PostgreSQL 15 + Redis
 apps/web-portaria   Painel da portaria — React 18 + Vite (PWA)
 apps/web-morador    App do morador (condar) — React 18 + Vite (PWA mobile)
+apps/web-sindico    App do síndico (condar) — gestão / aprovações / licença
 packages/shared     Schemas Zod + tipos TypeScript compartilhados
+packages/ui         Design system condar (@condar/ui) — componentes + preset
 infra               docker-compose (Postgres + Redis) para dev local
 ```
 
@@ -98,6 +100,11 @@ migrations, testes e build a cada push/PR.
   autorização de visitante na portaria, reserva de áreas comuns e encomendas
   aguardando retirada (`/morador/resumo`, `/morador/encomendas`, `/espacos`,
   `/morador/reservas`, `/morador/solicitacoes`).
+- **App do Síndico (condar, PWA mobile)**: painel de gestão, central de
+  aprovações (aprovar/reprovar) e visão de plano/licença com uso de unidades e
+  dispositivos.
+- **Design system (`@condar/ui`)**: componentes e preset Tailwind
+  compartilhados por todos os apps (regra de reúso de layout em `CLAUDE.md`).
 - **Unidades**: CRUD de condomínios, blocos e unidades + gestão de ocupantes
   (`/condominios`, `/blocos`, `/unidades`, `/unidades/:id/ocupantes`) com a
   regra de vínculo principal único por unidade.

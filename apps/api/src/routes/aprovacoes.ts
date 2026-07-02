@@ -35,14 +35,17 @@ const aprovacoesRoutes: FastifyPluginAsync = async (fastify) => {
     const limit = Math.min(100, parseInt(query.limit ?? '20', 10))
     const offset = (page - 1) * limit
 
-    const rows = query.status
-      ? await request.tenantDb!.unsafe(
-          `SELECT * FROM aprovacoes WHERE status = $1 ORDER BY criado_em DESC LIMIT ${limit} OFFSET ${offset}`,
-          [query.status]
-        )
-      : await request.tenantDb!.unsafe(
-          `SELECT * FROM aprovacoes ORDER BY criado_em DESC LIMIT ${limit} OFFSET ${offset}`
-        )
+    const where = query.status ? `WHERE a.status = $1` : ''
+    const params = query.status ? [query.status] : []
+    const rows = await request.tenantDb!.unsafe(
+      `SELECT a.*, p.nome AS pessoa_nome, u.numero AS unidade_numero
+       FROM aprovacoes a
+       LEFT JOIN pessoas p ON p.id = a.pessoa_id
+       LEFT JOIN unidades u ON u.id = a.unidade_id
+       ${where}
+       ORDER BY a.criado_em DESC LIMIT ${limit} OFFSET ${offset}`,
+      params
+    )
 
     return reply.status(200).send({ data: rows })
   })

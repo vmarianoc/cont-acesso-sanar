@@ -65,6 +65,7 @@ jobs:
           pnpm --filter api typecheck
           pnpm --filter web-portaria typecheck
           pnpm --filter web-morador typecheck
+          pnpm --filter web-sindico typecheck
 
       - name: Run migrations
         run: pnpm --filter api migrate
