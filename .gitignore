@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+*.local
+.DS_Store
+*.log
+coverage/
+.turbo/
+
+# Redis dump artifact
+*.rdb
+
+# Never commit uploaded condo reports (LGPD / personal data)
+*.pdf

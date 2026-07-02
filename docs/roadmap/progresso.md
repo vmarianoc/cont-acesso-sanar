@@ -1,0 +1,49 @@
+# Progresso do Roadmap — Fase 1 (MVP)
+
+Estado da implementação neste repositório (Cloud API + painel web da Portaria).
+Referência de escopo: [fase-1.md](fase-1.md).
+
+Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
+
+## Escopo do MVP
+
+| Funcionalidade | Prioridade | Status | Observações |
+|---|---|---|---|
+| Edge Service — Windows Service | P0 | ⬜ | Fora deste repo (Edge é .NET 8 / Go); a Cloud já expõe `/edge/sync/*` para integrá-lo |
+| Controle de acesso (Hikvision) | P0 | ⬜ | Depende do SDK de hardware no Edge |
+| Cadastro de moradores e unidades | P0 | ✅ | CRUD de condomínios/blocos/unidades (`/condominios`, `/blocos`, `/unidades`) + gestão de ocupantes (`/unidades/:id/ocupantes`) com regra de vínculo principal único; `/pessoas` e seed prontos |
+| Painel da portaria (web local) | P0 | ✅ | `apps/web-portaria` (PWA): feed de eventos, registro manual, visitantes, online/offline |
+| Liberação de visitantes com notificação | P0 | 🟡 | Pré-autorização + notificação (`notificacoes` + worker). Falta o fluxo em tempo real portaria↔app |
+| App Morador (iOS + Android) | P0 | 🟡 | App do morador **condar** (PWA mobile, `apps/web-morador`) com home, autorizar visitante, reservas e encomendas — funcional sobre a Cloud API. Falta empacotar como app nativo (React Native) |
+| Atualização cadastral com aprovação | P0 | ✅ | Fluxo de aprovações (`/aprovacoes`) com histórico, comando ao Edge e auditoria |
+| App Síndico — central de aprovações | P0 | 🟡 | App do síndico **condar** (PWA, `apps/web-sindico`) com painel de gestão, central de aprovações (aprovar/reprovar) e visão de licença/uso. Falta empacotar nativo |
+| Cloud API — auth, sync, push | P0 | ✅ | JWT+refresh, `/edge/sync/*`; push via BullMQ (stub FCM/APNs) |
+| Multi-tenant (schema per tenant) | P0 | ✅ | Conexão reservada por requisição + `search_path` isolado; teste de isolamento sob concorrência |
+| Licenciamento básico (START e PRO) | P0 | ✅ | Licença criada junto do tenant (com `license_key`); limites por plano (START 50 / PRO 500 / ENTERPRISE ∞) aplicados em `POST /unidades` e na importação; `GET /licenca` (plano/limites/uso) e `POST /edge/validate-license` (validação pelo Edge com vínculo de hardware por fingerprint e modo degradado) |
+| Importação via CSV/Excel | P1 | 🟡 | Importação de unidades/moradores via **PDF** (`POST /unidades/importar`, com dry-run) já implementada e validada contra relatório real (660 unidades); CSV/Excel ainda pendentes |
+| Migração Hikvision | P1 | ⬜ | — |
+| Chat portaria ↔ morador | P1 | ⬜ | — |
+| OCR de documentos (RG, CNH) | P1 | ⬜ | — |
+| Central SIP (ramal no app) | P2 | ⬜ | — |
+| Integração Superlógica | P2 | ⬜ | — |
+
+## Entregas transversais (além da tabela de escopo)
+
+| Item | Status | Observações |
+|---|---|---|
+| LGPD — log de auditoria append-only | ✅ | `auditoria` gravada em mutações sensíveis (pessoas, veículos, aprovações) |
+| MFA (TOTP) para admin/síndico | ✅ | `/auth/mfa/setup` e `/auth/mfa/enable`; exigido no login quando ativo |
+| Cadastro Vivo — aprovação → comando Edge | ✅ | `PATCH /aprovacoes/:id` enfileira `sync_queue` + notifica, transacional |
+| Testes automatizados (Vitest) | ✅ | auth, isolamento multi-tenant, `/eventos`, cascata de aprovação |
+| CI (GitHub Actions) | ✅ | Postgres+Redis, typecheck, migrate, testes, build |
+| Seed de demonstração | ✅ | `pnpm --filter api seed` |
+
+## Próximos passos sugeridos
+
+1. Importação de unidades/moradores via PDF/CSV/Excel (P1) — parser reaproveitando o cadastro de `/unidades` e `/pessoas`.
+2. ~~Gestão de usuários do tenant~~ ✅ (`/usuarios` + tela no app do síndico: convidar, vincular pessoa, ativar/desativar). Falta UI web de administração de condomínio/blocos/unidades/ocupantes.
+3. Enforcement de licença (limites de unidades/ramais) + endpoint `/edge/validate-license`.
+4. App Morador / App Síndico (React Native) consumindo os endpoints existentes.
+5. Provider real de push (FCM/APNs) no worker de notificações.
+
+> Este arquivo é um espelho vivo do progresso — atualize a cada iteração.
