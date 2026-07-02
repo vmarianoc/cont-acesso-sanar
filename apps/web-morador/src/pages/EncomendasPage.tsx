@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { AppScreen, Header, IconTile, Badge } from '@condar/ui'
 import { fetchEncomendas } from '../api/morador'
 import BottomNav from '../components/BottomNav'
 
@@ -11,19 +12,14 @@ export default function EncomendasPage() {
   const retiradas = encomendas?.filter((e) => e.status === 'retirada') ?? []
 
   return (
-    <div className="min-h-screen bg-areia pb-24 max-w-md mx-auto">
-      <header className="bg-tinta rounded-b-3xl px-5 pt-6 pb-6 text-white">
-        <p className="text-white/50 text-xs tracking-widest uppercase">Encomendas</p>
-        <h1 className="text-2xl font-bold mt-1">
-          {aguardando.length} aguardando retirada
-        </h1>
-      </header>
+    <AppScreen bottomNav>
+      <Header variant="tinta" eyebrow="Encomendas" title={`${aguardando.length} aguardando retirada`} />
 
       <div className="px-5 mt-4 space-y-3">
         {aguardando.map((e) => (
           <div key={e.id} className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex items-start gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-xl">📦</span>
+              <IconTile icon="📦" />
               <span>
                 <span className="block font-semibold text-gray-900">{e.remetente}</span>
                 <span className="block text-sm text-gray-500">
@@ -52,18 +48,14 @@ export default function EncomendasPage() {
 
         {retiradas.length > 0 && (
           <>
-            <h3 className="text-xs tracking-widest uppercase text-gray-400 mt-4 mb-1 px-1">
-              Retiradas
-            </h3>
+            <h3 className="text-xs tracking-widest uppercase text-gray-400 mt-4 mb-1 px-1">Retiradas</h3>
             {retiradas.map((e) => (
               <div key={e.id} className="bg-white rounded-2xl p-3 shadow-sm flex items-center justify-between">
                 <span className="text-gray-700">
                   {e.remetente}
                   {e.retirada_em ? ` · ${fmtDia(e.retirada_em)}` : ''}
                 </span>
-                <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded-full">
-                  Retirada
-                </span>
+                <Badge tone="green">Retirada</Badge>
               </div>
             ))}
           </>
@@ -71,6 +63,6 @@ export default function EncomendasPage() {
       </div>
 
       <BottomNav />
-    </div>
+    </AppScreen>
   )
 }

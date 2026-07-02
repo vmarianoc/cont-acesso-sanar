@@ -61,6 +61,7 @@ jobs:
 
       - name: Typecheck
         run: |
+          pnpm --filter @condar/ui typecheck
           pnpm --filter api typecheck
           pnpm --filter web-portaria typecheck
           pnpm --filter web-morador typecheck

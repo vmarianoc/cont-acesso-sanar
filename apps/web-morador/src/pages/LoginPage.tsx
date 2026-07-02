@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { TextField, Button } from '@condar/ui'
 import { useAuth } from '../hooks/useAuth'
 
 export default function LoginPage() {
@@ -41,41 +42,14 @@ export default function LoginPage() {
       </div>
 
       <form onSubmit={onSubmit} className="bg-white rounded-3xl p-6 shadow-xl space-y-4">
-        <Input label="E-mail" name="email" type="email" value={form.email} onChange={onChange} />
-        <Input label="Senha" name="senha" type="password" value={form.senha} onChange={onChange} />
-        <Input
-          label="ID do condomínio"
-          name="tenant_id"
-          value={form.tenant_id}
-          onChange={onChange}
-          mono
-        />
+        <TextField label="E-mail" name="email" type="email" value={form.email} onChange={onChange} required />
+        <TextField label="Senha" name="senha" type="password" value={form.senha} onChange={onChange} required />
+        <TextField label="ID do condomínio" name="tenant_id" value={form.tenant_id} onChange={onChange} mono required />
         {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-brand-600 px-4 py-3 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-        >
+        <Button type="submit" disabled={loading} className="w-full">
           {loading ? 'Entrando...' : 'Entrar'}
-        </button>
+        </Button>
       </form>
     </div>
-  )
-}
-
-function Input({
-  label,
-  mono,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; mono?: boolean }) {
-  return (
-    <label className="block">
-      <span className="text-sm font-medium text-gray-700">{label}</span>
-      <input
-        {...props}
-        required
-        className={`mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 ${mono ? 'font-mono' : ''}`}
-      />
-    </label>
   )
 }

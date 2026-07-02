@@ -1,10 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AppScreen, Header, Button, iniciais } from '@condar/ui'
 import { fetchSolicitacoes, decidirSolicitacao } from '../api/morador'
 import BottomNav from '../components/BottomNav'
-
-function iniciais(nome: string) {
-  return nome.split(' ').slice(0, 2).map((p) => p[0]).join('').toUpperCase()
-}
 
 export default function AutorizarPage() {
   const qc = useQueryClient()
@@ -26,11 +23,8 @@ export default function AutorizarPage() {
   const recentes = solicitacoes?.filter((s) => s.status !== 'pendente') ?? []
 
   return (
-    <div className="min-h-screen bg-areia pb-24 max-w-md mx-auto">
-      <header className="bg-tinta rounded-b-3xl px-5 pt-6 pb-6 text-white">
-        <p className="text-white/50 text-xs tracking-widest uppercase">Portaria virtual</p>
-        <h1 className="text-2xl font-bold mt-1">Autorizar visitante</h1>
-      </header>
+    <AppScreen bottomNav>
+      <Header variant="tinta" eyebrow="Portaria virtual" title="Autorizar visitante" />
 
       <div className="px-5 mt-4">
         {pendente ? (
@@ -46,20 +40,19 @@ export default function AutorizarPage() {
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-5">
-              <button
+              <Button
                 onClick={() => decidir.mutate({ id: pendente.id, status: 'liberado' })}
                 disabled={decidir.isPending}
-                className="rounded-xl bg-brand-600 py-3 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
               >
                 Liberar
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => decidir.mutate({ id: pendente.id, status: 'recusado' })}
                 disabled={decidir.isPending}
-                className="rounded-xl border border-gray-300 py-3 font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-50"
               >
                 Recusar
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -91,6 +84,6 @@ export default function AutorizarPage() {
       </div>
 
       <BottomNav />
-    </div>
+    </AppScreen>
   )
 }

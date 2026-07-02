@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AppScreen, Header, Badge } from '@condar/ui'
 import { fetchEspacos, fetchReservas, criarReserva } from '../api/morador'
 import BottomNav from '../components/BottomNav'
 
@@ -23,11 +24,8 @@ export default function ReservasPage() {
   })
 
   return (
-    <div className="min-h-screen bg-areia pb-24 max-w-md mx-auto">
-      <header className="bg-brand-600 rounded-b-3xl px-5 pt-6 pb-6 text-white">
-        <p className="text-white/70 text-xs tracking-widest uppercase">Áreas comuns</p>
-        <h1 className="text-2xl font-bold mt-1">Reservar espaço</h1>
-      </header>
+    <AppScreen bottomNav>
+      <Header eyebrow="Áreas comuns" title="Reservar espaço" />
 
       <div className="px-5 mt-4 space-y-4">
         {reservar.isError && (
@@ -68,14 +66,12 @@ export default function ReservasPage() {
                 {r.periodo ? ` · ${r.periodo}` : ''}
               </span>
             </span>
-            <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded-full capitalize">
-              {r.status}
-            </span>
+            <Badge tone="green">{r.status}</Badge>
           </div>
         ))}
       </div>
 
       <BottomNav />
-    </div>
+    </AppScreen>
   )
 }
