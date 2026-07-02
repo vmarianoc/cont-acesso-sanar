@@ -19,7 +19,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | App Síndico — central de aprovações | P0 | 🟡 | API de aprovações pronta; app dedicado não iniciado |
 | Cloud API — auth, sync, push | P0 | ✅ | JWT+refresh, `/edge/sync/*`; push via BullMQ (stub FCM/APNs) |
 | Multi-tenant (schema per tenant) | P0 | ✅ | Conexão reservada por requisição + `search_path` isolado; teste de isolamento sob concorrência |
-| Licenciamento básico (START e PRO) | P0 | ✅ | Licença criada junto do tenant; limites por plano (START 50 / PRO 500 / ENTERPRISE ∞) aplicados em `POST /unidades` e na importação; `GET /licenca` expõe plano/limites/uso. Falta apenas a validação de licença pelo Edge (`/edge/validate-license`) |
+| Licenciamento básico (START e PRO) | P0 | ✅ | Licença criada junto do tenant (com `license_key`); limites por plano (START 50 / PRO 500 / ENTERPRISE ∞) aplicados em `POST /unidades` e na importação; `GET /licenca` (plano/limites/uso) e `POST /edge/validate-license` (validação pelo Edge com vínculo de hardware por fingerprint e modo degradado) |
 | Importação via CSV/Excel | P1 | 🟡 | Importação de unidades/moradores via **PDF** (`POST /unidades/importar`, com dry-run) já implementada e validada contra relatório real (660 unidades); CSV/Excel ainda pendentes |
 | Migração Hikvision | P1 | ⬜ | — |
 | Chat portaria ↔ morador | P1 | ⬜ | — |

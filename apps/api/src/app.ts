@@ -14,6 +14,7 @@ import pessoasRoutes from './routes/pessoas.js'
 import aprovacoesRoutes from './routes/aprovacoes.js'
 import moradorRoutes from './routes/morador.js'
 import edgeSyncRoutes from './routes/edgeSync.js'
+import edgeLicenseRoutes from './routes/edgeLicense.js'
 import eventosRoutes from './routes/eventos.js'
 import condominiosRoutes from './routes/condominios.js'
 import blocosRoutes from './routes/blocos.js'
@@ -55,6 +56,7 @@ export async function buildApp() {
   await fastify.register(aprovacoesRoutes)
   await fastify.register(moradorRoutes)
   await fastify.register(edgeSyncRoutes)
+  await fastify.register(edgeLicenseRoutes)
   await fastify.register(eventosRoutes)
   await fastify.register(condominiosRoutes)
   await fastify.register(blocosRoutes)

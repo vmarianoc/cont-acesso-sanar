@@ -109,7 +109,9 @@ migrations, testes e build a cada push/PR.
 - **LGPD**: log de auditoria append-only (`auditoria`) em mutações sensíveis
   (pessoas, veículos, aprovações).
 - **Edge Sync**: ingestão de eventos, heartbeat e fila de comandos
-  (`/edge/sync/*`).
+  (`/edge/sync/*`); validação de licença pelo Edge
+  (`POST /edge/validate-license`) com vínculo ao hardware por fingerprint e
+  modo degradado (o acesso físico nunca é bloqueado).
 
 > Integrações externas (FCM/APNs, OCR, SDK de hardware Hikvision/Intelbras)
 > são stubs claramente marcados, coerentes com o escopo da Fase 1.

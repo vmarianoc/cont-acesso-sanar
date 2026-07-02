@@ -41,9 +41,10 @@ export async function createTenant(
     `
 
     const validade = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    const licenseKey = `AP-${uuidv4().replace(/-/g, '').toUpperCase()}`
     await tx`
-      INSERT INTO public.licencas (tenant_id, plano, max_unidades, max_dispositivos, validade)
-      VALUES (${id}, ${planoNorm}, ${limites.maxUnidades ?? 1000000}, ${limites.maxDispositivos ?? 1000000}, ${validade})
+      INSERT INTO public.licencas (tenant_id, plano, max_unidades, max_dispositivos, validade, license_key)
+      VALUES (${id}, ${planoNorm}, ${limites.maxUnidades ?? 1000000}, ${limites.maxDispositivos ?? 1000000}, ${validade}, ${licenseKey})
     `
 
     await tx.unsafe(`CREATE SCHEMA IF NOT EXISTS ${schemaName}`)

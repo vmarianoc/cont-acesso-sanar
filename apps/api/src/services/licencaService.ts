@@ -108,6 +108,90 @@ export async function contarNovasNoImport(
   return numeros.filter((n) => !set.has(n)).length
 }
 
+export type ResultadoValidacaoEdge =
+  | { status: 'nao_encontrada' }
+  | { status: 'fingerprint_invalido' }
+  | {
+      status: 'ok'
+      valida: boolean
+      degradado: boolean
+      tenant_id: string
+      plano: PlanoNormalizado
+      limites: { unidades: number | null; dispositivos: number | null }
+      validade: Date | null
+      ativa: boolean
+      expirada: boolean
+    }
+
+/**
+ * Validação de licença pelo Edge (POST /edge/validate-license).
+ * Vincula o fingerprint do hardware na primeira validação; reativação em outro
+ * hardware é recusada (requer aprovação do suporte). O acesso físico nunca é
+ * bloqueado — em licença inativa/expirada o Edge opera em modo degradado.
+ */
+export async function validarLicencaPorKey(
+  sql: postgres.Sql,
+  licenseKey: string,
+  fingerprint?: string
+): Promise<ResultadoValidacaoEdge> {
+  const rows = await sql.unsafe<
+    {
+      id: string
+      tenant_id: string
+      plano: string
+      max_unidades: number
+      max_dispositivos: number
+      validade: Date | null
+      ativa: boolean
+      edge_fingerprint: string | null
+      tenant_ativo: boolean
+    }[]
+  >(
+    `SELECT l.id, l.tenant_id, l.plano, l.max_unidades, l.max_dispositivos, l.validade,
+            l.ativa, l.edge_fingerprint, t.ativo AS tenant_ativo
+     FROM public.licencas l
+     JOIN public.tenants t ON t.id = l.tenant_id
+     WHERE l.license_key = $1
+     LIMIT 1`,
+    [licenseKey]
+  )
+
+  const l = rows[0]
+  if (!l) return { status: 'nao_encontrada' }
+
+  if (fingerprint) {
+    if (!l.edge_fingerprint) {
+      await sql.unsafe(
+        `UPDATE public.licencas SET edge_fingerprint = $1, atualizado_em = NOW() WHERE id = $2`,
+        [fingerprint, l.id]
+      )
+    } else if (l.edge_fingerprint !== fingerprint) {
+      return { status: 'fingerprint_invalido' }
+    }
+  }
+
+  const plano = normalizarPlano(l.plano)
+  const ilimitado = plano === 'enterprise'
+  const expirada = !!l.validade && l.validade.getTime() < Date.now()
+  const ativa = l.ativa && l.tenant_ativo
+  const valida = ativa && !expirada
+
+  return {
+    status: 'ok',
+    valida,
+    degradado: !valida,
+    tenant_id: l.tenant_id,
+    plano,
+    limites: {
+      unidades: ilimitado ? null : l.max_unidades,
+      dispositivos: ilimitado ? null : l.max_dispositivos,
+    },
+    validade: l.validade,
+    ativa,
+    expirada,
+  }
+}
+
 export class LicencaError extends Error {
   constructor(
     public codigo: string,

@@ -35,3 +35,10 @@ CREATE TABLE IF NOT EXISTS public.migrations (
   nome       TEXT NOT NULL UNIQUE,
   aplicado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Chave de licença e vínculo ao hardware do Edge (validação pelo Edge Service).
+-- ALTERs idempotentes: o schema public é (re)aplicado inteiro a cada migrate.
+ALTER TABLE public.licencas ADD COLUMN IF NOT EXISTS license_key TEXT;
+ALTER TABLE public.licencas ADD COLUMN IF NOT EXISTS edge_fingerprint TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_licencas_license_key
+  ON public.licencas(license_key) WHERE license_key IS NOT NULL;

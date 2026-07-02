@@ -2,7 +2,7 @@ import fp from 'fastify-plugin'
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify'
 import type { JwtPayload } from '../types/common.js'
 
-const PUBLIC_PATHS = ['/auth/', '/admin/', '/health', '/edge/sync/']
+const PUBLIC_PATHS = ['/auth/', '/admin/', '/health', '/edge/']
 
 const multiTenantPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
