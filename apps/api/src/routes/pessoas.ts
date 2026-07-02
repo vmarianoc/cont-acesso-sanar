@@ -15,7 +15,14 @@ const pessoasRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onRequest', fastify.authenticate)
 
   fastify.get('/pessoas', async (request, reply) => {
-    const query = request.query as { ativo?: string; tipo?: string; page?: string; limit?: string }
+    const query = request.query as {
+      ativo?: string
+      tipo?: string
+      sem_usuario?: string
+      busca?: string
+      page?: string
+      limit?: string
+    }
     const page = Math.max(1, parseInt(query.page ?? '1', 10))
     const limit = Math.min(100, parseInt(query.limit ?? '20', 10))
     const offset = (page - 1) * limit
@@ -24,15 +31,21 @@ const pessoasRoutes: FastifyPluginAsync = async (fastify) => {
     const params: any[] = []
 
     if (query.ativo !== undefined) {
-      conditions.push(`ativo = $${params.push(query.ativo === 'true')}`)
+      conditions.push(`p.ativo = $${params.push(query.ativo === 'true')}`)
     }
     if (query.tipo) {
-      conditions.push(`tipo = $${params.push(query.tipo)}`)
+      conditions.push(`p.tipo = $${params.push(query.tipo)}`)
+    }
+    if (query.sem_usuario === 'true') {
+      conditions.push(`NOT EXISTS (SELECT 1 FROM usuarios_tenant ut WHERE ut.pessoa_id = p.id)`)
+    }
+    if (query.busca) {
+      conditions.push(`p.nome ILIKE $${params.push('%' + query.busca + '%')}`)
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
     const rows = await request.tenantDb!.unsafe(
-      `SELECT * FROM pessoas ${where} ORDER BY nome LIMIT ${limit} OFFSET ${offset}`,
+      `SELECT p.* FROM pessoas p ${where} ORDER BY p.nome LIMIT ${limit} OFFSET ${offset}`,
       params
     )
 

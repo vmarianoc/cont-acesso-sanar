@@ -101,8 +101,9 @@ migrations, testes e build a cada push/PR.
   aguardando retirada (`/morador/resumo`, `/morador/encomendas`, `/espacos`,
   `/morador/reservas`, `/morador/solicitacoes`).
 - **App do Síndico (condar, PWA mobile)**: painel de gestão, central de
-  aprovações (aprovar/reprovar) e visão de plano/licença com uso de unidades e
-  dispositivos.
+  aprovações (aprovar/reprovar), gestão de usuários (convidar síndico/porteiro/
+  morador, vincular a pessoa, ativar/desativar) e visão de plano/licença com
+  uso de unidades e dispositivos.
 - **Design system (`@condar/ui`)**: componentes e preset Tailwind
   compartilhados por todos os apps (regra de reúso de layout em `CLAUDE.md`).
 - **Unidades**: CRUD de condomínios, blocos e unidades + gestão de ocupantes

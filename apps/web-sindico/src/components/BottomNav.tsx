@@ -4,6 +4,7 @@ import { BottomNav as UIBottomNav, type NavItem } from '@condar/ui'
 const ITENS: NavItem[] = [
   { to: '/', label: 'Gestão', icon: '📊' },
   { to: '/aprovacoes', label: 'Aprovações', icon: '✅' },
+  { to: '/usuarios', label: 'Usuários', icon: '👥' },
   { to: '/licenca', label: 'Plano', icon: '📄' },
 ]
 

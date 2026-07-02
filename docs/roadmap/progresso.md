@@ -41,7 +41,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 ## Próximos passos sugeridos
 
 1. Importação de unidades/moradores via PDF/CSV/Excel (P1) — parser reaproveitando o cadastro de `/unidades` e `/pessoas`.
-2. Gestão de usuários do tenant + UI web de administração (condomínio/blocos/unidades/ocupantes).
+2. ~~Gestão de usuários do tenant~~ ✅ (`/usuarios` + tela no app do síndico: convidar, vincular pessoa, ativar/desativar). Falta UI web de administração de condomínio/blocos/unidades/ocupantes.
 3. Enforcement de licença (limites de unidades/ramais) + endpoint `/edge/validate-license`.
 4. App Morador / App Síndico (React Native) consumindo os endpoints existentes.
 5. Provider real de push (FCM/APNs) no worker de notificações.

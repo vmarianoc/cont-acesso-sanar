@@ -17,6 +17,7 @@ import moradorAppRoutes from './routes/moradorApp.js'
 import edgeSyncRoutes from './routes/edgeSync.js'
 import edgeLicenseRoutes from './routes/edgeLicense.js'
 import eventosRoutes from './routes/eventos.js'
+import usuariosRoutes from './routes/usuarios.js'
 import condominiosRoutes from './routes/condominios.js'
 import blocosRoutes from './routes/blocos.js'
 import unidadesRoutes from './routes/unidades.js'
@@ -60,6 +61,7 @@ export async function buildApp() {
   await fastify.register(edgeSyncRoutes)
   await fastify.register(edgeLicenseRoutes)
   await fastify.register(eventosRoutes)
+  await fastify.register(usuariosRoutes)
   await fastify.register(condominiosRoutes)
   await fastify.register(blocosRoutes)
   await fastify.register(unidadesRoutes)
