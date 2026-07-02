@@ -24,9 +24,12 @@ function Clock() {
   )
 }
 
+const PERFIS_ADMIN = ['sindico', 'admin', 'superadmin']
+
 export default function PortariaPage() {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logout, perfil } = useAuth()
+  const podeImportar = perfil ? PERFIS_ADMIN.includes(perfil) : false
   const { data: dispositivos } = useDispositivos()
   const registrar = useRegistrarEvento()
 
@@ -63,6 +66,14 @@ export default function PortariaPage() {
         <div className="flex items-center gap-6">
           <Clock />
           <StatusBar />
+          {podeImportar && (
+            <button
+              onClick={() => navigate('/importar')}
+              className="bg-white/10 hover:bg-white/20 text-white text-sm px-3 py-1.5 rounded-md transition-colors"
+            >
+              Importar
+            </button>
+          )}
           <button
             onClick={() => navigate('/visitante')}
             className="bg-white/10 hover:bg-white/20 text-white text-sm px-3 py-1.5 rounded-md transition-colors"

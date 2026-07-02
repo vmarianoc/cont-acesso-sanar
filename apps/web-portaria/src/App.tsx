@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import PortariaPage from './pages/PortariaPage'
 import VisitantePage from './pages/VisitantePage'
+import ImportarPage from './pages/ImportarPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token')
@@ -28,6 +29,14 @@ export default function App() {
           element={
             <RequireAuth>
               <VisitantePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/importar"
+          element={
+            <RequireAuth>
+              <ImportarPage />
             </RequireAuth>
           }
         />
