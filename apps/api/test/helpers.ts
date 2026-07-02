@@ -11,6 +11,8 @@ export interface TestTenant {
   sindico: { email: string; senha: string; pessoaId: string }
   morador: { email: string; senha: string; pessoaId: string }
   unidadeId: string
+  blocoId: string
+  condominioId: string
   aprovacaoId: string
   moradorNome: string
 }
@@ -115,6 +117,8 @@ export async function createTestTenant(sql: postgres.Sql, label: string): Promis
     sindico: { email: `sindico-${tenant.id}@test.com`, senha: 'senha123', pessoaId: sindicoPessoa },
     morador: { email: `morador-${tenant.id}@test.com`, senha: 'senha123', pessoaId: moradorPessoa },
     unidadeId,
+    blocoId,
+    condominioId,
     aprovacaoId,
     moradorNome,
   }

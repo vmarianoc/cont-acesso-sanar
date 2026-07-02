@@ -18,12 +18,61 @@ export const PessoaSchema = z.object({
   atualizado_em: z.string().datetime(),
 })
 
+export const CondominioSchema = z.object({
+  id: z.string().uuid(),
+  nome: z.string().min(2),
+  cnpj: z.string().nullable(),
+  endereco: z.string().nullable(),
+  cidade: z.string().nullable(),
+  estado: z.string().length(2).nullable(),
+  cep: z.string().nullable(),
+  ativo: z.boolean(),
+})
+
+export const BlocoSchema = z.object({
+  id: z.string().uuid(),
+  condominio_id: z.string().uuid(),
+  nome: z.string().min(1),
+  ativo: z.boolean(),
+})
+
 export const UnidadeSchema = z.object({
   id: z.string().uuid(),
   bloco_id: z.string().uuid(),
   numero: z.string(),
   andar: z.number().int().nullable(),
   ativa: z.boolean(),
+})
+
+export const TipoVinculo = z.enum(['proprietario', 'inquilino', 'dependente', 'funcionario'])
+
+export const VinculoUnidadeSchema = z.object({
+  id: z.string().uuid(),
+  pessoa_id: z.string().uuid(),
+  unidade_id: z.string().uuid(),
+  tipo_vinculo: TipoVinculo,
+  principal: z.boolean(),
+  ativo: z.boolean(),
+})
+
+export const CreateCondominioSchema = CondominioSchema.omit({ id: true, ativo: true }).partial({
+  cnpj: true,
+  endereco: true,
+  cidade: true,
+  estado: true,
+  cep: true,
+})
+
+export const CreateBlocoSchema = BlocoSchema.omit({ id: true, ativo: true })
+
+export const CreateUnidadeSchema = UnidadeSchema.omit({ id: true, ativa: true }).partial({
+  andar: true,
+})
+
+export const CreateVinculoSchema = z.object({
+  pessoa_id: z.string().uuid(),
+  tipo_vinculo: TipoVinculo,
+  principal: z.boolean().default(false),
 })
 
 export const VeiculoSchema = z.object({
@@ -96,7 +145,14 @@ export const PreAutorizarVisitanteSchema = VisitanteSchema.omit({
 
 export type Login = z.infer<typeof LoginSchema>
 export type Pessoa = z.infer<typeof PessoaSchema>
+export type Condominio = z.infer<typeof CondominioSchema>
+export type Bloco = z.infer<typeof BlocoSchema>
 export type Unidade = z.infer<typeof UnidadeSchema>
+export type VinculoUnidade = z.infer<typeof VinculoUnidadeSchema>
+export type CreateCondominio = z.infer<typeof CreateCondominioSchema>
+export type CreateBloco = z.infer<typeof CreateBlocoSchema>
+export type CreateUnidade = z.infer<typeof CreateUnidadeSchema>
+export type CreateVinculo = z.infer<typeof CreateVinculoSchema>
 export type Veiculo = z.infer<typeof VeiculoSchema>
 export type Aprovacao = z.infer<typeof AprovacaoSchema>
 export type EventoAcesso = z.infer<typeof EventoAcessoSchema>

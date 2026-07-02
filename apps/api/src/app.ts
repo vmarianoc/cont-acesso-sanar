@@ -14,6 +14,9 @@ import aprovacoesRoutes from './routes/aprovacoes.js'
 import moradorRoutes from './routes/morador.js'
 import edgeSyncRoutes from './routes/edgeSync.js'
 import eventosRoutes from './routes/eventos.js'
+import condominiosRoutes from './routes/condominios.js'
+import blocosRoutes from './routes/blocos.js'
+import unidadesRoutes from './routes/unidades.js'
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -48,6 +51,9 @@ export async function buildApp() {
   await fastify.register(moradorRoutes)
   await fastify.register(edgeSyncRoutes)
   await fastify.register(eventosRoutes)
+  await fastify.register(condominiosRoutes)
+  await fastify.register(blocosRoutes)
+  await fastify.register(unidadesRoutes)
 
   fastify.setErrorHandler((error, request, reply) => {
     fastify.log.error({ err: error, requestId: request.id }, 'Unhandled error')

@@ -11,7 +11,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 |---|---|---|---|
 | Edge Service — Windows Service | P0 | ⬜ | Fora deste repo (Edge é .NET 8 / Go); a Cloud já expõe `/edge/sync/*` para integrá-lo |
 | Controle de acesso (Hikvision) | P0 | ⬜ | Depende do SDK de hardware no Edge |
-| Cadastro de moradores e unidades | P0 | 🟡 | Tabelas + API (`/pessoas`, unidades, vínculos) e seed prontos; falta CRUD completo de unidades/blocos |
+| Cadastro de moradores e unidades | P0 | ✅ | CRUD de condomínios/blocos/unidades (`/condominios`, `/blocos`, `/unidades`) + gestão de ocupantes (`/unidades/:id/ocupantes`) com regra de vínculo principal único; `/pessoas` e seed prontos |
 | Painel da portaria (web local) | P0 | ✅ | `apps/web-portaria` (PWA): feed de eventos, registro manual, visitantes, online/offline |
 | Liberação de visitantes com notificação | P0 | 🟡 | Pré-autorização + notificação (`notificacoes` + worker). Falta o fluxo em tempo real portaria↔app |
 | App Morador (iOS + Android) | P0 | ⬜ | App mobile não iniciado; endpoints `/morador/*` já existem na Cloud |
@@ -40,8 +40,8 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 
 ## Próximos passos sugeridos
 
-1. CRUD completo de condomínio/blocos/unidades + gestão de usuários (App Síndico web).
-2. Importação CSV/Excel (P1) — parser configurável para bases legadas.
+1. Importação de unidades/moradores via PDF/CSV/Excel (P1) — parser reaproveitando o cadastro de `/unidades` e `/pessoas`.
+2. Gestão de usuários do tenant + UI web de administração (condomínio/blocos/unidades/ocupantes).
 3. Enforcement de licença (limites de unidades/ramais) + endpoint `/edge/validate-license`.
 4. App Morador / App Síndico (React Native) consumindo os endpoints existentes.
 5. Provider real de push (FCM/APNs) no worker de notificações.
