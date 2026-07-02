@@ -9,3 +9,6 @@ coverage/
 
 # Redis dump artifact
 *.rdb
+
+# Never commit uploaded condo reports (LGPD / personal data)
+*.pdf

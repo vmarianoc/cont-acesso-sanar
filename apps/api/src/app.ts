@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import fastifyMultipart from '@fastify/multipart'
 import { randomUUID } from 'node:crypto'
 
 import dbPlugin from './plugins/db.js'
@@ -34,6 +35,10 @@ export async function buildApp() {
 
   fastify.addHook('onSend', async (request, reply) => {
     reply.header('X-Request-ID', request.id)
+  })
+
+  await fastify.register(fastifyMultipart, {
+    limits: { fileSize: 25 * 1024 * 1024 },
   })
 
   await fastify.register(dbPlugin)

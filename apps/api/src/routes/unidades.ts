@@ -2,6 +2,11 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
+import {
+  parsePdf,
+  mapRelatorioParaPlano,
+  aplicarImportacao,
+} from '../services/pdfImportService.js'
 
 const CreateUnidadeBody = z.object({
   bloco_id: z.string().uuid(),
@@ -21,8 +26,68 @@ const CreateVinculoBody = z.object({
   principal: z.boolean().default(false),
 })
 
+const PERFIS_IMPORT = new Set(['admin', 'sindico', 'superadmin'])
+
 const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onRequest', fastify.authenticate)
+
+  // Importação de unidades/moradores a partir do relatório PDF do condomínio.
+  // ?dry_run=true (padrão) apenas pré-visualiza; ?dry_run=false grava.
+  fastify.post('/unidades/importar', async (request, reply) => {
+    const user = request.user as { perfil: string; sub: string }
+    if (!PERFIS_IMPORT.has(user.perfil)) {
+      return reply.status(403).send({
+        erro: { codigo: 'ACESSO_NEGADO', mensagem: 'Apenas síndico ou administrador podem importar' },
+      })
+    }
+
+    const file = await (request as any).file()
+    if (!file) {
+      return reply.status(400).send({
+        erro: { codigo: 'ARQUIVO_FALTANDO', mensagem: 'Envie o PDF no campo "file"' },
+      })
+    }
+    const buffer = await file.toBuffer()
+
+    const query = request.query as { dry_run?: string; condominio?: string; bloco?: string }
+    const dryRun = query.dry_run !== 'false'
+
+    let relatorio
+    try {
+      relatorio = await parsePdf(buffer)
+    } catch (err) {
+      request.log.error({ err }, 'falha ao parsear PDF de importação')
+      return reply.status(422).send({
+        erro: { codigo: 'PDF_INVALIDO', mensagem: 'Não foi possível ler o PDF enviado' },
+      })
+    }
+
+    const plano = mapRelatorioParaPlano(relatorio, {
+      condominioNome: query.condominio,
+      bloco: query.bloco,
+    })
+
+    if (dryRun) {
+      return reply.status(200).send({
+        data: {
+          dry_run: true,
+          condominio: plano.condominioNome,
+          bloco: plano.bloco,
+          totais: plano.totais,
+          amostra: plano.unidades.slice(0, 10),
+        },
+      })
+    }
+
+    const resultado = await aplicarImportacao(request.tenantDb!, plano, {
+      usuarioId: user.sub,
+      ip: request.ip,
+    })
+
+    return reply.status(201).send({
+      data: { dry_run: false, condominio: plano.condominioNome, totais: plano.totais, resultado },
+    })
+  })
 
   fastify.get('/unidades', async (request, reply) => {
     const query = request.query as {

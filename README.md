@@ -93,6 +93,13 @@ migrations, testes e build a cada push/PR.
   para perfis admin/síndico quando ativado (`/auth/mfa/setup`, `/auth/mfa/enable`).
 - **Portaria (web/PWA)**: feed de eventos em tempo real, registro manual de
   acesso, cadastro/pré-autorização de visitantes, indicador online/offline.
+- **Unidades**: CRUD de condomínios, blocos e unidades + gestão de ocupantes
+  (`/condominios`, `/blocos`, `/unidades`, `/unidades/:id/ocupantes`) com a
+  regra de vínculo principal único por unidade.
+- **Importação de unidades (PDF)**: `POST /unidades/importar` (síndico/admin)
+  faz upload do relatório "Contatos das unidades" do condomínio; com
+  `?dry_run=true` (padrão) apenas pré-visualiza, e `?dry_run=false` grava
+  (idempotente) condomínio/blocos/unidades/moradores/vínculos.
 - **Cadastro Vivo**: ao aprovar uma solicitação (`PATCH /aprovacoes/:id`), o
   sistema enfileira um comando para o Edge (`sync_queue`) e notifica o morador,
   de forma transacional.

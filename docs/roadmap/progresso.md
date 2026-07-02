@@ -20,7 +20,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | Cloud API — auth, sync, push | P0 | ✅ | JWT+refresh, `/edge/sync/*`; push via BullMQ (stub FCM/APNs) |
 | Multi-tenant (schema per tenant) | P0 | ✅ | Conexão reservada por requisição + `search_path` isolado; teste de isolamento sob concorrência |
 | Licenciamento básico (START e PRO) | P0 | 🟡 | Tabela `licencas` + criação junto do tenant; falta enforcement de limites e validação pelo Edge |
-| Importação via CSV/Excel | P1 | ⬜ | — |
+| Importação via CSV/Excel | P1 | 🟡 | Importação de unidades/moradores via **PDF** (`POST /unidades/importar`, com dry-run) já implementada e validada contra relatório real (660 unidades); CSV/Excel ainda pendentes |
 | Migração Hikvision | P1 | ⬜ | — |
 | Chat portaria ↔ morador | P1 | ⬜ | — |
 | OCR de documentos (RG, CNH) | P1 | ⬜ | — |
