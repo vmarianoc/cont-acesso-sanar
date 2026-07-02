@@ -126,6 +126,43 @@ async function run() {
         reserved.json({ placa: 'ABC1D23', modelo: 'Honda Civic', cor: 'preto' }),
       ] as any
     )
+
+    // --- Módulos do app do morador (condar) ---
+    const moradorPessoa = pessoaIds['morador@demo.com']
+
+    const espacoIds: Record<string, string> = {}
+    for (const nome of ['Salão de festas', 'Churrasqueira', 'Salão de jogos']) {
+      const eid = uuidv4()
+      espacoIds[nome] = eid
+      await reserved.unsafe(`INSERT INTO espacos (id, nome) VALUES ($1, $2)`, [eid, nome])
+    }
+    await reserved.unsafe(
+      `INSERT INTO reservas (id, espaco_id, pessoa_id, data, periodo, status)
+       VALUES ($1, $2, $3, CURRENT_DATE + 5, '19h–22h', 'confirmada')`,
+      [uuidv4(), espacoIds['Salão de jogos'], moradorPessoa]
+    )
+
+    await reserved.unsafe(
+      `INSERT INTO encomendas (id, pessoa_id, unidade_id, remetente, descricao, prateleira, codigo_retirada, status)
+       VALUES ($1, $2, $3, 'Mercado Livre', 'caixa média', 'B3', '4729', 'aguardando')`,
+      [uuidv4(), moradorPessoa, unidadeIds[0]]
+    )
+    await reserved.unsafe(
+      `INSERT INTO encomendas (id, pessoa_id, unidade_id, remetente, descricao, prateleira, status)
+       VALUES ($1, $2, $3, 'Correios', 'caixa pequena', 'A1', 'aguardando')`,
+      [uuidv4(), moradorPessoa, unidadeIds[0]]
+    )
+    await reserved.unsafe(
+      `INSERT INTO encomendas (id, pessoa_id, unidade_id, remetente, status, retirada_em)
+       VALUES ($1, $2, $3, 'Amazon', 'retirada', NOW() - INTERVAL '3 days')`,
+      [uuidv4(), moradorPessoa, unidadeIds[0]]
+    )
+
+    await reserved.unsafe(
+      `INSERT INTO solicitacoes_acesso (id, nome, documento, tipo, unidade_id, status)
+       VALUES ($1, 'João Souza', '123.456.789-00', 'visita', $2, 'pendente')`,
+      [uuidv4(), unidadeIds[0]]
+    )
   } finally {
     reserved.release()
   }

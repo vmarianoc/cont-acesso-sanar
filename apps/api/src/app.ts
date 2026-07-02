@@ -13,6 +13,7 @@ import tenantsRoutes from './routes/tenants.js'
 import pessoasRoutes from './routes/pessoas.js'
 import aprovacoesRoutes from './routes/aprovacoes.js'
 import moradorRoutes from './routes/morador.js'
+import moradorAppRoutes from './routes/moradorApp.js'
 import edgeSyncRoutes from './routes/edgeSync.js'
 import edgeLicenseRoutes from './routes/edgeLicense.js'
 import eventosRoutes from './routes/eventos.js'
@@ -55,6 +56,7 @@ export async function buildApp() {
   await fastify.register(pessoasRoutes)
   await fastify.register(aprovacoesRoutes)
   await fastify.register(moradorRoutes)
+  await fastify.register(moradorAppRoutes)
   await fastify.register(edgeSyncRoutes)
   await fastify.register(edgeLicenseRoutes)
   await fastify.register(eventosRoutes)

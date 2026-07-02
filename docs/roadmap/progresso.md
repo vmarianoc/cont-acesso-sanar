@@ -14,7 +14,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | Cadastro de moradores e unidades | P0 | ✅ | CRUD de condomínios/blocos/unidades (`/condominios`, `/blocos`, `/unidades`) + gestão de ocupantes (`/unidades/:id/ocupantes`) com regra de vínculo principal único; `/pessoas` e seed prontos |
 | Painel da portaria (web local) | P0 | ✅ | `apps/web-portaria` (PWA): feed de eventos, registro manual, visitantes, online/offline |
 | Liberação de visitantes com notificação | P0 | 🟡 | Pré-autorização + notificação (`notificacoes` + worker). Falta o fluxo em tempo real portaria↔app |
-| App Morador (iOS + Android) | P0 | ⬜ | App mobile não iniciado; endpoints `/morador/*` já existem na Cloud |
+| App Morador (iOS + Android) | P0 | 🟡 | App do morador **condar** (PWA mobile, `apps/web-morador`) com home, autorizar visitante, reservas e encomendas — funcional sobre a Cloud API. Falta empacotar como app nativo (React Native) |
 | Atualização cadastral com aprovação | P0 | ✅ | Fluxo de aprovações (`/aprovacoes`) com histórico, comando ao Edge e auditoria |
 | App Síndico — central de aprovações | P0 | 🟡 | API de aprovações pronta; app dedicado não iniciado |
 | Cloud API — auth, sync, push | P0 | ✅ | JWT+refresh, `/edge/sync/*`; push via BullMQ (stub FCM/APNs) |

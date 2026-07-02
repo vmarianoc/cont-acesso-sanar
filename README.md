@@ -16,6 +16,7 @@ Monorepo com pnpm workspaces:
 ```
 apps/api            Cloud API — Node.js 20 + Fastify 4 + PostgreSQL 15 + Redis
 apps/web-portaria   Painel da portaria — React 18 + Vite (PWA)
+apps/web-morador    App do morador (condar) — React 18 + Vite (PWA mobile)
 packages/shared     Schemas Zod + tipos TypeScript compartilhados
 infra               docker-compose (Postgres + Redis) para dev local
 ```
@@ -93,6 +94,10 @@ migrations, testes e build a cada push/PR.
   para perfis admin/síndico quando ativado (`/auth/mfa/setup`, `/auth/mfa/enable`).
 - **Portaria (web/PWA)**: feed de eventos em tempo real, registro manual de
   acesso, cadastro/pré-autorização de visitantes, indicador online/offline.
+- **App do Morador (condar, PWA mobile)**: home com resumo da unidade,
+  autorização de visitante na portaria, reserva de áreas comuns e encomendas
+  aguardando retirada (`/morador/resumo`, `/morador/encomendas`, `/espacos`,
+  `/morador/reservas`, `/morador/solicitacoes`).
 - **Unidades**: CRUD de condomínios, blocos e unidades + gestão de ocupantes
   (`/condominios`, `/blocos`, `/unidades`, `/unidades/:id/ocupantes`) com a
   regra de vínculo principal único por unidade.
