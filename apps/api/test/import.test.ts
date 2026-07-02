@@ -48,12 +48,17 @@ describe('mapRelatorioParaPlano', () => {
     expect(u101.andar).toBe(1)
     expect(u101.ocupantes[0].nome).toBe('Ana Dona') // prefixo de nota removido
     expect(u101.ocupantes[0].cpf).toBe('11111111111') // só dígitos
+    expect(u101.ocupantes[0].tipo_pessoa).toBe('fisica')
     expect(u101.ocupantes.filter((o) => o.principal).length).toBe(1)
     expect(u101.ocupantes.find((o) => o.nome === 'Beto Mora')!.tipo_vinculo).toBe('inquilino')
 
     const u000 = plano.unidades.find((u) => u.numero === '000')!
     expect(u000.andar).toBeNull()
     expect(u000.ocupantes[0].cpf).toBe('11222333000144') // CNPJ preservado
+    expect(u000.ocupantes[0].tipo_pessoa).toBe('juridica') // dono é pessoa jurídica
+
+    expect(plano.totais.juridicas).toBe(1)
+    expect(plano.totais.comDocumento).toBe(2) // Ana (CPF) + Empresa (CNPJ); Beto sem documento
   })
 })
 
@@ -93,6 +98,11 @@ describe('aplicarImportacao', () => {
          WHERE b.nome = 'Bloco Principal' AND v.principal = true AND v.ativo = true`
       )
       expect(Number(principais[0].c)).toBe(2)
+
+      const pj = await reserved.unsafe<{ tipo_pessoa: string }[]>(
+        `SELECT tipo_pessoa FROM pessoas WHERE cpf = '11222333000144' LIMIT 1`
+      )
+      expect(pj[0]?.tipo_pessoa).toBe('juridica')
 
       const audit = await reserved.unsafe<{ c: string }[]>(
         `SELECT count(*) AS c FROM auditoria WHERE acao = 'IMPORT'`

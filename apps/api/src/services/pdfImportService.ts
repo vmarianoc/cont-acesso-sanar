@@ -139,9 +139,15 @@ export function mapTipoVinculo(tipoRelatorio: string): { tipo: TipoVinculo; prin
   return { tipo: 'dependente', principal: false }
 }
 
-function soDigitos(s: string): string | null {
+export type TipoPessoa = 'fisica' | 'juridica'
+
+/** Classifica o documento: 11 dígitos = CPF (física), 12+ = CNPJ (jurídica). */
+export function classificarDocumento(
+  s: string
+): { documento: string; tipoPessoa: TipoPessoa } | null {
   const d = s.replace(/\D/g, '')
-  return d.length >= 11 ? d : null
+  if (d.length < 11) return null
+  return { documento: d, tipoPessoa: d.length > 11 ? 'juridica' : 'fisica' }
 }
 
 function limparNome(nome: string): string {
@@ -151,6 +157,7 @@ function limparNome(nome: string): string {
 export interface PlanoOcupante {
   nome: string
   cpf: string | null
+  tipo_pessoa: TipoPessoa
   email: string | null
   telefone: string | null
   tipo_vinculo: TipoVinculo
@@ -165,7 +172,7 @@ export interface PlanoImportacao {
   condominioNome: string
   bloco: string
   unidades: PlanoUnidade[]
-  totais: { unidades: number; ocupantes: number; comCpf: number }
+  totais: { unidades: number; ocupantes: number; comDocumento: number; juridicas: number }
 }
 
 /** Transforma o relatório parseado em um plano de importação (função pura, testável). */
@@ -178,7 +185,8 @@ export function mapRelatorioParaPlano(
 
   const unidades: PlanoUnidade[] = []
   let ocupantesTotal = 0
-  let comCpf = 0
+  let comDocumento = 0
+  let juridicas = 0
 
   for (const u of rel.unidades) {
     const primeiroToken = u.codigo.trim().split(/\s+/)[0]
@@ -192,12 +200,14 @@ export function mapRelatorioParaPlano(
       const nome = limparNome(o.nome)
       if (!nome) continue
       const { tipo, principal } = mapTipoVinculo(o.tipo)
-      const cpf = soDigitos(o.cpf)
-      if (cpf) comCpf++
+      const doc = classificarDocumento(o.cpf)
+      if (doc) comDocumento++
+      if (doc?.tipoPessoa === 'juridica') juridicas++
       const email = (o.email.split(/[;\s]+/).find((e) => e.includes('@')) ?? '').trim() || null
       ocupantes.push({
         nome,
-        cpf,
+        cpf: doc?.documento ?? null,
+        tipo_pessoa: doc?.tipoPessoa ?? 'fisica',
         email,
         telefone: o.telefone.trim() || null,
         tipo_vinculo: tipo,
@@ -218,7 +228,7 @@ export function mapRelatorioParaPlano(
     condominioNome,
     bloco,
     unidades,
-    totais: { unidades: unidades.length, ocupantes: ocupantesTotal, comCpf },
+    totais: { unidades: unidades.length, ocupantes: ocupantesTotal, comDocumento, juridicas },
   }
 }
 
@@ -322,8 +332,9 @@ export async function aplicarImportacao(
         if (!pessoaId) {
           pessoaId = uuidv4()
           await db.unsafe(
-            `INSERT INTO pessoas (id, nome, cpf, tipo, email, telefone) VALUES ($1, $2, $3, 'morador', $4, $5)`,
-            [pessoaId, o.nome, o.cpf, o.email, o.telefone]
+            `INSERT INTO pessoas (id, nome, cpf, tipo, tipo_pessoa, email, telefone)
+             VALUES ($1, $2, $3, 'morador', $4, $5, $6)`,
+            [pessoaId, o.nome, o.cpf, o.tipo_pessoa, o.email, o.telefone]
           )
           res.pessoas_criadas++
         }
