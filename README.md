@@ -3,6 +3,12 @@
 Plataforma SaaS de controle de acesso e gestão condominial (multi-tenant, offline-first).
 Este repositório contém o MVP (Fase 1): **Cloud API** + **painel web da Portaria**.
 
+## Documentação
+
+Documentação completa de produto, arquitetura e **roadmap** em [`docs/`](docs/README.md)
+— incluindo o [roadmap da Fase 1](docs/roadmap/fase-1.md) e o
+[progresso da implementação](docs/roadmap/progresso.md).
+
 ## Arquitetura
 
 Monorepo com pnpm workspaces:

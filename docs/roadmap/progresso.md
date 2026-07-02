@@ -1,0 +1,49 @@
+# Progresso do Roadmap — Fase 1 (MVP)
+
+Estado da implementação neste repositório (Cloud API + painel web da Portaria).
+Referência de escopo: [fase-1.md](fase-1.md).
+
+Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
+
+## Escopo do MVP
+
+| Funcionalidade | Prioridade | Status | Observações |
+|---|---|---|---|
+| Edge Service — Windows Service | P0 | ⬜ | Fora deste repo (Edge é .NET 8 / Go); a Cloud já expõe `/edge/sync/*` para integrá-lo |
+| Controle de acesso (Hikvision) | P0 | ⬜ | Depende do SDK de hardware no Edge |
+| Cadastro de moradores e unidades | P0 | 🟡 | Tabelas + API (`/pessoas`, unidades, vínculos) e seed prontos; falta CRUD completo de unidades/blocos |
+| Painel da portaria (web local) | P0 | ✅ | `apps/web-portaria` (PWA): feed de eventos, registro manual, visitantes, online/offline |
+| Liberação de visitantes com notificação | P0 | 🟡 | Pré-autorização + notificação (`notificacoes` + worker). Falta o fluxo em tempo real portaria↔app |
+| App Morador (iOS + Android) | P0 | ⬜ | App mobile não iniciado; endpoints `/morador/*` já existem na Cloud |
+| Atualização cadastral com aprovação | P0 | ✅ | Fluxo de aprovações (`/aprovacoes`) com histórico, comando ao Edge e auditoria |
+| App Síndico — central de aprovações | P0 | 🟡 | API de aprovações pronta; app dedicado não iniciado |
+| Cloud API — auth, sync, push | P0 | ✅ | JWT+refresh, `/edge/sync/*`; push via BullMQ (stub FCM/APNs) |
+| Multi-tenant (schema per tenant) | P0 | ✅ | Conexão reservada por requisição + `search_path` isolado; teste de isolamento sob concorrência |
+| Licenciamento básico (START e PRO) | P0 | 🟡 | Tabela `licencas` + criação junto do tenant; falta enforcement de limites e validação pelo Edge |
+| Importação via CSV/Excel | P1 | ⬜ | — |
+| Migração Hikvision | P1 | ⬜ | — |
+| Chat portaria ↔ morador | P1 | ⬜ | — |
+| OCR de documentos (RG, CNH) | P1 | ⬜ | — |
+| Central SIP (ramal no app) | P2 | ⬜ | — |
+| Integração Superlógica | P2 | ⬜ | — |
+
+## Entregas transversais (além da tabela de escopo)
+
+| Item | Status | Observações |
+|---|---|---|
+| LGPD — log de auditoria append-only | ✅ | `auditoria` gravada em mutações sensíveis (pessoas, veículos, aprovações) |
+| MFA (TOTP) para admin/síndico | ✅ | `/auth/mfa/setup` e `/auth/mfa/enable`; exigido no login quando ativo |
+| Cadastro Vivo — aprovação → comando Edge | ✅ | `PATCH /aprovacoes/:id` enfileira `sync_queue` + notifica, transacional |
+| Testes automatizados (Vitest) | ✅ | auth, isolamento multi-tenant, `/eventos`, cascata de aprovação |
+| CI (GitHub Actions) | ✅ | Postgres+Redis, typecheck, migrate, testes, build |
+| Seed de demonstração | ✅ | `pnpm --filter api seed` |
+
+## Próximos passos sugeridos
+
+1. CRUD completo de condomínio/blocos/unidades + gestão de usuários (App Síndico web).
+2. Importação CSV/Excel (P1) — parser configurável para bases legadas.
+3. Enforcement de licença (limites de unidades/ramais) + endpoint `/edge/validate-license`.
+4. App Morador / App Síndico (React Native) consumindo os endpoints existentes.
+5. Provider real de push (FCM/APNs) no worker de notificações.
+
+> Este arquivo é um espelho vivo do progresso — atualize a cada iteração.
