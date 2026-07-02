@@ -20,7 +20,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | Cloud API — auth, sync, push | P0 | ✅ | JWT+refresh, `/edge/sync/*`; push via BullMQ (stub FCM/APNs) |
 | Multi-tenant (schema per tenant) | P0 | ✅ | Conexão reservada por requisição + `search_path` isolado; teste de isolamento sob concorrência |
 | Licenciamento básico (START e PRO) | P0 | ✅ | Licença criada junto do tenant (com `license_key`); limites por plano (START 50 / PRO 500 / ENTERPRISE ∞) aplicados em `POST /unidades` e na importação; `GET /licenca` (plano/limites/uso) e `POST /edge/validate-license` (validação pelo Edge com vínculo de hardware por fingerprint e modo degradado) |
-| Importação via CSV/Excel | P1 | 🟡 | Importação de unidades/moradores via **PDF** (`POST /unidades/importar`, com dry-run) já implementada e validada contra relatório real (660 unidades); CSV/Excel ainda pendentes |
+| Importação via CSV/Excel | P1 | ✅ | `POST /unidades/importar` (com dry-run) aceita PDF, CSV e Excel (.xlsx/.xls); PDF validado contra relatório real (660 unidades), CSV/Excel via `sheetImportService.ts` reaproveitando `mapRelatorioParaPlano`/`aplicarImportacao` |
 | Migração Hikvision | P1 | ⬜ | — |
 | Chat portaria ↔ morador | P1 | ⬜ | — |
 | OCR de documentos (RG, CNH) | P1 | ⬜ | — |
@@ -40,7 +40,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 
 ## Próximos passos sugeridos
 
-1. Importação de unidades/moradores via PDF/CSV/Excel (P1) — parser reaproveitando o cadastro de `/unidades` e `/pessoas`.
+1. ~~Importação de unidades/moradores via PDF/CSV/Excel~~ ✅ (`POST /unidades/importar` aceita os três formatos; front da portaria atualizado).
 2. ~~Gestão de usuários do tenant~~ ✅ (`/usuarios` + tela no app do síndico: convidar, vincular pessoa, ativar/desativar).
 3. ~~UI web de administração de unidades/ocupantes~~ ✅ (`/unidades` no app do síndico: busca por número, listagem condomínio/bloco/unidade, vincular/desvincular ocupante). Falta UI para criar condomínio/bloco (hoje só via API).
 4. ~~Enforcement de licença~~ ✅ (limites de unidades por plano + `/edge/validate-license`).
