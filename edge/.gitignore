@@ -1,0 +1,11 @@
+# Binários
+/bin/
+edge
+edge-service
+
+# Configuração local (contém edge_token, senhas de hardware)
+config.yaml
+
+# Banco local (quando a persistência SQLite for implementada)
+*.db
+/data/

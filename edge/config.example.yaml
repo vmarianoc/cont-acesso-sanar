@@ -1,0 +1,54 @@
+# Configuração do Edge Service. Copie para config.yaml e ajuste os valores —
+# config.yaml não deve ser versionado (contém segredos: edge_token, senhas de
+# hardware). Veja docs/edge/edge-service.md no repositório da Cloud API para a
+# documentação completa da arquitetura.
+
+tenant_id: "00000000-0000-0000-0000-000000000000"
+schema_name: "tenant_00000000_0000_0000_0000_000000000000"
+dispositivo_id: "00000000-0000-0000-0000-000000000000"
+
+# Token usado como "Authorization: Bearer <edge_token>" nas chamadas a
+# /edge/sync/*. ATENÇÃO: a Cloud API hoje não tem um endpoint de login
+# dedicado para o Edge — este token precisa ser um JWT válido emitido
+# manualmente (ex.: via /auth/login com uma conta de serviço) até que exista
+# um fluxo de autenticação próprio para o Edge (ver README.md, seção "Gaps").
+edge_token: ""
+
+cloud_api_url: "http://localhost:3000"
+
+log_level: "info" # debug | info | warn | error
+
+database:
+  path: "./data/edge.db"
+  max_size_gb: 8
+
+hardware:
+  hikvision:
+    enabled: false
+    host: "192.168.1.100"
+    port: 8000
+    username: "admin"
+    password: ""
+  intelbras:
+    enabled: false
+    host: "192.168.1.101"
+    port: 4370
+    username: ""
+    password: ""
+  osdp:
+    enabled: false
+    host: ""
+    port: 0
+    username: ""
+    password: ""
+
+local_api:
+  port: 8080
+  bind: "0.0.0.0" # ou "127.0.0.1" para restringir à máquina local
+
+sync:
+  interval_normal_seconds: 30 # envio de eventos em condição normal
+  interval_backlog_seconds: 5 # envio de eventos quando há fila acumulada
+  heartbeat_interval_seconds: 60
+  comandos_poll_interval_seconds: 60
+  batch_size: 500
