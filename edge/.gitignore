@@ -1,7 +1,7 @@
-# Binários
+# Binários (âncora "/" para não confundir com o diretório cmd/edge/)
 /bin/
-edge
-edge-service
+/edge
+/edge-service
 
 # Configuração local (contém edge_token, senhas de hardware)
 config.yaml
