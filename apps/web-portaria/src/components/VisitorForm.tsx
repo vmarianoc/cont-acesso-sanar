@@ -1,11 +1,23 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 
 interface VisitorFormProps {
   onSuccess?: () => void
 }
 
+interface UnidadeOption {
+  id: string
+  numero: string
+  bloco: { nome: string }
+}
+
 export default function VisitorForm({ onSuccess }: VisitorFormProps) {
+  const { data: unidades } = useQuery({
+    queryKey: ['unidades', 'options'],
+    queryFn: () =>
+      client.get('/unidades?limit=500').then((r) => r.data.data as UnidadeOption[]),
+  })
   const [form, setForm] = useState({
     nome: '',
     documento: '',
@@ -61,15 +73,21 @@ export default function VisitorForm({ onSuccess }: VisitorFormProps) {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">ID da Unidade</label>
-        <input
+        <label className="block text-sm font-medium text-gray-700">Unidade</label>
+        <select
           name="unidade_id"
           value={form.unidade_id}
-          onChange={handleChange}
+          onChange={(e) => setForm((prev) => ({ ...prev, unidade_id: e.target.value }))}
           required
-          placeholder="UUID da unidade"
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
+        >
+          <option value="">— Selecione a unidade —</option>
+          {unidades?.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.bloco.nome} · {u.numero}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>

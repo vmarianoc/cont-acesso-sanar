@@ -115,8 +115,8 @@ export function Card({
 /** Métrica (número grande + rótulo). */
 export function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="bg-gray-50 rounded-md p-3">
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
+    <div className="min-w-0 bg-gray-50 rounded-md p-3">
+      <div className="break-words text-xl font-bold text-gray-900 sm:text-2xl">{value}</div>
       <div className="text-xs text-gray-500">{label}</div>
     </div>
   )
@@ -199,10 +199,10 @@ export function BottomNav({
           <button
             key={i.to}
             onClick={() => onNavigate(i.to)}
-            className={`flex flex-col items-center gap-0.5 px-3 ${ativo ? 'text-brand-600' : 'text-gray-400'}`}
+            className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 ${ativo ? 'text-brand-600' : 'text-gray-400'}`}
           >
             <span className="text-xl">{i.icon}</span>
-            <span className="text-xs font-medium">{i.label}</span>
+            <span className="max-w-full truncate text-xs font-medium">{i.label}</span>
           </button>
         )
       })}
