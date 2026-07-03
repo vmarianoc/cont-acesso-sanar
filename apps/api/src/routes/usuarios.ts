@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { hashPassword } from '../services/authService.js'
 import { registrarAuditoria } from '../services/auditoriaService.js'
+import { gerarRamal } from '../services/ramalSipService.js'
 
 const PERFIS_GESTAO = new Set(['admin', 'sindico', 'superadmin'])
 const PERFIS_CRIAVEIS = ['sindico', 'porteiro', 'morador', 'admin'] as const
@@ -84,6 +85,12 @@ const usuariosRoutes: FastifyPluginAsync = async (fastify) => {
       dados_depois: { email, perfil, pessoa_id: pessoa_id ?? null },
       ip: request.ip,
     })
+
+    // Central SIP: todo morador com app recebe automaticamente um ramal
+    // vinculado à sua unidade (docs/modules/central-sip.md).
+    if (perfil === 'morador' && pessoa_id) {
+      await gerarRamal(db, pessoa_id)
+    }
 
     return reply.status(201).send({ data: rows[0] })
   })

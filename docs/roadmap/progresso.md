@@ -24,7 +24,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | Migração Hikvision | P1 | ⬜ | — |
 | Chat portaria ↔ morador | P1 | ⬜ | — |
 | OCR de documentos (RG, CNH) | P1 | ⬜ | — |
-| Central SIP (ramal no app) | P2 | ⬜ | — |
+| Central SIP (ramal no app) | P2 | 🟡 | Cloud: tabela `ramais_sip`, geração automática de ramal ao criar usuário morador (`ramalSipService.ts`), `GET /morador/ramal` (com geração sob demanda) e `GET /unidades/:id/ramais` (para a portaria). Falta o Flexisip de verdade — Edge tem só o stub de ciclo de vida (branch `edge-service`, `internal/sip`) — e o fluxo de chamada em si |
 | Integração Superlógica | P2 | ⬜ | — |
 
 ## Entregas transversais (além da tabela de escopo)
@@ -46,5 +46,6 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 4. ~~Enforcement de licença~~ ✅ (limites de unidades por plano + `/edge/validate-license`).
 5. App Morador / App Síndico (React Native) consumindo os endpoints existentes.
 6. ~~Provider real de push (FCM/APNs)~~ ✅ (`pushService.ts` via `firebase-admin`; `POST/DELETE /push/tokens` para registrar/remover dispositivo; notificações de acesso e de visita já enviam a foto — `eventos.foto_url`/`visitantes.foto_url` — como imagem do push).
+7. Central SIP: geração/consulta de ramal implementada do lado Cloud (item 🟡 acima). Falta integrar de verdade com o Flexisip no Edge (provisionar o ramal recebido via `sync_queue`, ex.: novo tipo de comando `ramal.provisionar`) e o fluxo de chamada (portaria → morador com foto do visitante, toque simultâneo, etc. — ver `docs/modules/central-sip.md`).
 
 > Este arquivo é um espelho vivo do progresso — atualize a cada iteração.

@@ -9,6 +9,7 @@ import {
   type RelatorioParseado,
 } from '../services/pdfImportService.js'
 import { parseCsv, parseExcel } from '../services/sheetImportService.js'
+import { listarRamaisPorUnidade } from '../services/ramalSipService.js'
 import {
   getLicencaEfetiva,
   contarUnidades,
@@ -327,6 +328,14 @@ const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
        ORDER BY v.principal DESC, p.nome`,
       [id]
     )
+    return reply.status(200).send({ data: rows })
+  })
+
+  // Ramais SIP dos ocupantes da unidade (para a portaria discar) — sem
+  // credenciais, só número + nome (Central SIP, docs/modules/central-sip.md).
+  fastify.get('/unidades/:id/ramais', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const rows = await listarRamaisPorUnidade(request.tenantDb!, id)
     return reply.status(200).send({ data: rows })
   })
 

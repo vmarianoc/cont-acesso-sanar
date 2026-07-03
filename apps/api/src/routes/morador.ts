@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
 import { enqueueNotificacao } from '../workers/notificacoesQueue.js'
+import { gerarRamal, buscarRamalPorPessoa } from '../services/ramalSipService.js'
 
 const UpdatePerfilBody = z.object({
   nome: z.string().min(2).optional(),
@@ -44,6 +45,28 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     return reply.status(200).send({ data: rows[0] })
+  })
+
+  // Ramal SIP do morador (Central SIP — docs/modules/central-sip.md).
+  // Gera sob demanda se ainda não existir (compatibilidade com contas
+  // criadas antes deste recurso existir).
+  fastify.get('/morador/ramal', async (request, reply) => {
+    const userId = (request as any).user.sub
+    const db = request.tenantDb!
+
+    const usuario = await db.unsafe<{ pessoa_id: string | null }[]>(
+      `SELECT pessoa_id FROM usuarios_tenant WHERE id = $1`,
+      [userId]
+    )
+    if (usuario.length === 0 || !usuario[0].pessoa_id) {
+      return reply.status(404).send({
+        erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Usuário sem pessoa vinculada' },
+      })
+    }
+    const pessoaId = usuario[0].pessoa_id
+
+    const ramal = (await buscarRamalPorPessoa(db, pessoaId)) ?? (await gerarRamal(db, pessoaId))
+    return reply.status(200).send({ data: ramal })
   })
 
   fastify.patch('/morador/perfil', async (request, reply) => {
