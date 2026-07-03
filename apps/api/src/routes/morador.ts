@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
+import { criarLiberacao } from '../services/acessoService.js'
 
 const UpdatePerfilBody = z.object({
   nome: z.string().min(2).optional(),
@@ -157,6 +158,19 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
        RETURNING *`,
       [id, nome, documento ?? null, unidade_id, valido_de, valido_ate, userId]
     )
+
+    if (rows[0]) {
+      // Pré-autorização gera liberação facial temporária na portaria,
+      // limitada à janela informada pelo morador.
+      await criarLiberacao(request.tenantDb!, {
+        visitante_id: id,
+        area: 'portaria',
+        valido_de,
+        valido_ate,
+        origem_tipo: 'visitante',
+        origem_id: id,
+      })
+    }
 
     return reply.status(201).send({ data: rows[0] })
   })

@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
+import { criarLiberacao } from '../services/acessoService.js'
 
 interface Contexto {
   pessoa_id: string
@@ -137,6 +138,21 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
        VALUES ($1, $2, $3, $4, $5, 'confirmada') RETURNING *`,
       [uuidv4(), espaco_id, ctx.pessoa_id, data, periodo ?? null]
     )
+
+    // Agendamento gera liberação facial temporária para a área do espaço
+    // (dia inteiro da reserva), consumida pelo Edge em /edge/validate-access.
+    const [espaco] = await db.unsafe(`SELECT area FROM espacos WHERE id = $1`, [espaco_id])
+    if (espaco?.area) {
+      await criarLiberacao(db, {
+        pessoa_id: ctx.pessoa_id,
+        area: espaco.area,
+        valido_de: `${data}T00:00:00Z`,
+        valido_ate: `${data}T23:59:59Z`,
+        origem_tipo: 'reserva',
+        origem_id: rows[0].id,
+      })
+    }
+
     return reply.status(201).send({ data: rows[0] })
   })
 

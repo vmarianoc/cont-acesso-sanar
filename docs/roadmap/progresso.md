@@ -20,6 +20,8 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | Cloud API — auth, sync, push | P0 | ✅ | JWT+refresh, `/edge/sync/*`; push via BullMQ (stub FCM/APNs) |
 | Multi-tenant (schema per tenant) | P0 | ✅ | Conexão reservada por requisição + `search_path` isolado; teste de isolamento sob concorrência |
 | Licenciamento básico (START e PRO) | P0 | ✅ | Licença criada junto do tenant (com `license_key`); limites por plano (START 50 / PRO 500 / ENTERPRISE ∞) aplicados em `POST /unidades` e na importação; `GET /licenca` (plano/limites/uso) e `POST /edge/validate-license` (validação pelo Edge com vínculo de hardware por fingerprint e modo degradado) |
+| Liberação facial por área (temporária, via agendamentos) | P0 | ✅ | `liberacoes_acesso` + `POST /edge/validate-access`: reserva de espaço libera a área do espaço no dia; pré-autorização de visitante libera a portaria na janela; liberação manual com revogação (`/liberacoes`); todo acesso gera evento auditável |
+| App Administração (4ª rota) | P0 | ✅ | `apps/web-admin` (PWA + Capacitor `br.com.condar.admin`, porta 5176): painel, cadastros de pessoas, gestão de encomendas (registrar chegada, código de retirada, baixa) e liberações de acesso por área |
 | Importação via CSV/Excel | P1 | 🟡 | Importação de unidades/moradores via **PDF** (`POST /unidades/importar`, com dry-run) já implementada e validada contra relatório real (660 unidades); CSV/Excel ainda pendentes |
 | Migração Hikvision | P1 | ⬜ | — |
 | Chat portaria ↔ morador | P1 | ⬜ | — |
@@ -46,5 +48,8 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 4. ~~Enforcement de licença~~ ✅ (limites de unidades por plano + `/edge/validate-license`).
 5. ~~Apps nativos (portaria/morador/síndico)~~ ✅ via Capacitor reaproveitando os apps web + `@condar/ui` (ver `docs/apps-nativos.md`); resta assinar/publicar nas lojas e `cap add ios` (requer macOS).
 6. Provider real de push (FCM/APNs) no worker de notificações.
+7. ~~Liberação facial por área via agendamentos~~ ✅ (`/edge/validate-access` + liberações automáticas de reservas/visitantes; UI em `web-admin`).
+8. ~~App de administração do condomínio~~ ✅ (`apps/web-admin`: cadastros, encomendas com código de retirada, liberações).
+9. Integração do Edge real com `/edge/validate-access` (matching facial no hardware → pessoa_id) e telas de áreas/dispositivos.
 
 > Este arquivo é um espelho vivo do progresso — atualize a cada iteração.

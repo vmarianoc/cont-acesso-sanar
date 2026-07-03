@@ -18,6 +18,7 @@ apps/api            Cloud API — Node.js 20 + Fastify 4 + PostgreSQL 15 + Redis
 apps/web-portaria   Painel da portaria — React 18 + Vite (PWA)
 apps/web-morador    App do morador (condar) — React 18 + Vite (PWA mobile)
 apps/web-sindico    App do síndico (condar) — gestão / aprovações / licença
+apps/web-admin      App de administração (condar) — cadastros / encomendas / liberações
 packages/shared     Schemas Zod + tipos TypeScript compartilhados
 packages/ui         Design system condar (@condar/ui) — componentes + preset
 infra               docker-compose (Postgres + Redis) para dev local
