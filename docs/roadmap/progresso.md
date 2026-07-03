@@ -50,6 +50,6 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 6. Provider real de push (FCM/APNs) no worker de notificações.
 7. ~~Liberação facial por área via agendamentos~~ ✅ (`/edge/validate-access` + liberações automáticas de reservas/visitantes; UI em `web-admin`).
 8. ~~App de administração do condomínio~~ ✅ (`apps/web-admin`: cadastros, encomendas com código de retirada, liberações).
-9. Integração do Edge real com `/edge/validate-access` (matching facial no hardware → pessoa_id) e telas de áreas/dispositivos.
+9. ~~Telas de áreas/dispositivos~~ ✅ (`/dispositivos` + tela no web-admin: criar leitor por área, ativar/desativar). Falta a integração do Edge real com `/edge/validate-access` (matching facial no hardware → pessoa_id).
 
 > Este arquivo é um espelho vivo do progresso — atualize a cada iteração.

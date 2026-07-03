@@ -23,6 +23,7 @@ import blocosRoutes from './routes/blocos.js'
 import unidadesRoutes from './routes/unidades.js'
 import acessoRoutes from './routes/acesso.js'
 import encomendasRoutes from './routes/encomendas.js'
+import dispositivosRoutes from './routes/dispositivos.js'
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -69,6 +70,7 @@ export async function buildApp() {
   await fastify.register(unidadesRoutes)
   await fastify.register(acessoRoutes)
   await fastify.register(encomendasRoutes)
+  await fastify.register(dispositivosRoutes)
 
   fastify.setErrorHandler((error, request, reply) => {
     fastify.log.error({ err: error, requestId: request.id }, 'Unhandled error')

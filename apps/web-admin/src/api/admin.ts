@@ -83,3 +83,21 @@ export const revogarLiberacao = (id: string) =>
   client.delete(`/liberacoes/${id}`).then((r) => r.data.data)
 
 export const fetchLicenca = () => get<Licenca>('/licenca')
+
+export interface Dispositivo {
+  id: string
+  nome: string
+  tipo: string
+  area: string
+  local: string | null
+  ativo: boolean
+  condominio_nome: string | null
+}
+
+export const fetchDispositivos = () => get<Dispositivo[]>('/dispositivos')
+
+export const criarDispositivo = (payload: { nome: string; tipo: string; area: string; local?: string }) =>
+  client.post('/dispositivos', payload).then((r) => r.data.data as Dispositivo)
+
+export const atualizarDispositivo = (id: string, payload: { ativo?: boolean; area?: string; nome?: string }) =>
+  client.patch(`/dispositivos/${id}`, payload).then((r) => r.data.data as Dispositivo)

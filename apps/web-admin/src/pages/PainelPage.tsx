@@ -58,6 +58,13 @@ export default function PainelPage() {
           sub="Facial por área, temporárias e manuais"
           onClick={() => navigate('/liberacoes')}
         />
+        <Card
+          icon="🛰️"
+          iconBg="bg-gray-800"
+          titulo="Áreas e dispositivos"
+          sub="Leitores faciais por área"
+          onClick={() => navigate('/dispositivos')}
+        />
         {licenca && (
           <p className="text-xs text-gray-400 text-center">
             Plano {licenca.plano.toUpperCase()} · {licenca.uso.unidades} unidades
