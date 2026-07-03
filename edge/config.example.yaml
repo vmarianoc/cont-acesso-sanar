@@ -46,6 +46,14 @@ local_api:
   port: 8080
   bind: "0.0.0.0" # ou "127.0.0.1" para restringir à máquina local
 
+# Central SIP (Flexisip) — ver docs/modules/central-sip.md. Ainda não
+# implementada neste esqueleto (ver internal/sip/server.go); manter
+# enabled: false até a integração com o Flexisip existir.
+sip:
+  enabled: false
+  port_udp: 5060
+  port_tls: 5061
+
 sync:
   interval_normal_seconds: 30 # envio de eventos em condição normal
   interval_backlog_seconds: 5 # envio de eventos quando há fila acumulada

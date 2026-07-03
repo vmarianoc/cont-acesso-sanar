@@ -34,6 +34,13 @@ type LocalAPIConfig struct {
 	Bind string `yaml:"bind"`
 }
 
+// SIPConfig configura a Central SIP (Flexisip) — ver docs/modules/central-sip.md.
+type SIPConfig struct {
+	Enabled bool `yaml:"enabled"`
+	PortUDP int  `yaml:"port_udp"`
+	PortTLS int  `yaml:"port_tls"`
+}
+
 type SyncConfig struct {
 	IntervalNormalSeconds       int `yaml:"interval_normal_seconds"`
 	IntervalBacklogSeconds      int `yaml:"interval_backlog_seconds"`
@@ -53,6 +60,7 @@ type Config struct {
 	Database DatabaseConfig `yaml:"database"`
 	Hardware HardwareConfig `yaml:"hardware"`
 	LocalAPI LocalAPIConfig `yaml:"local_api"`
+	SIP      SIPConfig      `yaml:"sip"`
 	Sync     SyncConfig     `yaml:"sync"`
 }
 
@@ -62,6 +70,7 @@ func defaults() Config {
 		LogLevel:    "info",
 		Database:    DatabaseConfig{Path: "./data/edge.db", MaxSizeGB: 8},
 		LocalAPI:    LocalAPIConfig{Port: 8080, Bind: "0.0.0.0"},
+		SIP:         SIPConfig{Enabled: false, PortUDP: 5060, PortTLS: 5061},
 		Sync: SyncConfig{
 			IntervalNormalSeconds:       30,
 			IntervalBacklogSeconds:      5,

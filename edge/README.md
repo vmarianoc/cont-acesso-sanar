@@ -21,10 +21,11 @@ runtime, ciclo de release e instalação completamente diferentes da Cloud API
 - **`internal/hardware`** — interface `Adapter` comum + stubs para
   Hikvision, Intelbras e OSDP v2 (sem integração real com SDK — ver "O que
   falta" abaixo).
-- **`internal/core`** — Core Engine: conecta os adapters, roda os laços de
-  sincronização (heartbeat, envio de eventos com intervalo adaptativo,
-  polling de comandos) e expõe a API local.
+- **`internal/core`** — Core Engine: conecta os adapters, a Central SIP e roda
+  os laços de sincronização (heartbeat, envio de eventos com intervalo
+  adaptativo, polling de comandos), além de expor a API local.
 - **`internal/localapi`** — servidor HTTP local com `/health`.
+- **`internal/sip`** — ciclo de vida da Central SIP (stub — ver "O que falta").
 - **`cmd/edge`** — binário principal.
 
 Testado manualmente de ponta a ponta contra a Cloud API real deste
@@ -38,7 +39,13 @@ monorepo (`apps/api`): heartbeat e busca de comandos responderam `200`.
   bibliotecas proprietárias dos fabricantes, não incluídas aqui. O adapter
   OSDP v2 é o mais viável de completar sem dependência proprietária (protocolo
   aberto), mas falta a camada serial/framing.
-- **Flexisip (Central SIP)** — não iniciado.
+- **Flexisip (Central SIP)** — `internal/sip` só tem o ciclo de vida
+  (`Iniciar`/`Parar`) plugado no Core Engine e na config (`sip.enabled`,
+  `port_udp`, `port_tls`); com `enabled: true` ele loga um aviso claro e
+  segue rodando em modo degradado (nunca derruba o Edge). Falta toda a
+  integração real com o Flexisip (processo/binário próprio, não uma lib Go —
+  ver comentário no topo de `internal/sip/server.go`) e o provisionamento de
+  ramais por unidade descrito em `docs/modules/central-sip.md`.
 - **API local completa** — falta servir o painel da portaria
   (`apps/web-portaria`) como estáticos, a API REST da portaria e o WebSocket
   de eventos em tempo real.

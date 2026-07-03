@@ -15,6 +15,7 @@ import (
 	"github.com/condar/edge-service/internal/hardware/intelbras"
 	"github.com/condar/edge-service/internal/hardware/osdp"
 	"github.com/condar/edge-service/internal/localapi"
+	"github.com/condar/edge-service/internal/sip"
 	edgesync "github.com/condar/edge-service/internal/sync"
 )
 
@@ -27,6 +28,7 @@ type Engine struct {
 	client   *edgesync.Client
 	queue    *edgesync.Queue
 	adapters []hardware.Adapter
+	sip      *sip.Server
 }
 
 func NewEngine(cfg *config.Config, logger *slog.Logger) *Engine {
@@ -37,6 +39,7 @@ func NewEngine(cfg *config.Config, logger *slog.Logger) *Engine {
 		client:   edgesync.NewClient(cfg.CloudAPIURL, cfg.EdgeToken),
 		queue:    edgesync.NewQueue(),
 		adapters: adapters,
+		sip:      sip.New(sip.Config(cfg.SIP)),
 	}
 }
 
@@ -74,6 +77,13 @@ func (e *Engine) Run(ctx context.Context) error {
 		}
 	}
 
+	// Central SIP: falha ao iniciar não deve derrubar o Edge — o controle de
+	// acesso físico não pode ficar refém da Central SIP (mesma filosofia de
+	// "modo degradado" já usada na validação de licença).
+	if err := e.sip.Iniciar(ctx); err != nil {
+		e.logger.Warn("central sip não iniciada", "err", err)
+	}
+
 	srv := localapi.New(e.cfg.LocalAPI.Bind, e.cfg.LocalAPI.Port, e, e.logger)
 	srvErr := make(chan error, 1)
 	go func() {
@@ -108,6 +118,10 @@ func (e *Engine) Run(ctx context.Context) error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(shutdownCtx)
+
+	if err := e.sip.Parar(); err != nil {
+		e.logger.Warn("falha ao parar central sip", "err", err)
+	}
 
 	for _, a := range e.adapters {
 		_ = a.Desconectar()
