@@ -44,7 +44,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 2. ~~Gestão de usuários do tenant~~ ✅ (`/usuarios` + tela no app do síndico: convidar, vincular pessoa, ativar/desativar).
 3. ~~UI web de administração de unidades/ocupantes~~ ✅ (`/unidades` no app do síndico: busca por número, listagem condomínio/bloco/unidade, vincular/desvincular ocupante). Falta UI para criar condomínio/bloco (hoje só via API).
 4. ~~Enforcement de licença~~ ✅ (limites de unidades por plano + `/edge/validate-license`).
-5. App Morador / App Síndico (React Native) consumindo os endpoints existentes.
+5. ~~Apps nativos (portaria/morador/síndico)~~ ✅ via Capacitor reaproveitando os apps web + `@condar/ui` (ver `docs/apps-nativos.md`); resta assinar/publicar nas lojas e `cap add ios` (requer macOS).
 6. Provider real de push (FCM/APNs) no worker de notificações.
 
 > Este arquivo é um espelho vivo do progresso — atualize a cada iteração.
