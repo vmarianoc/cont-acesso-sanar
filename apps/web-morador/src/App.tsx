@@ -4,10 +4,16 @@ import HomePage from './pages/HomePage'
 import AutorizarPage from './pages/AutorizarPage'
 import ReservasPage from './pages/ReservasPage'
 import EncomendasPage from './pages/EncomendasPage'
+import RealtimeSync from './components/RealtimeSync'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!localStorage.getItem('token')) return <Navigate to="/login" replace />
-  return <>{children}</>
+  return (
+    <>
+      <RealtimeSync />
+      {children}
+    </>
+  )
 }
 
 export default function App() {

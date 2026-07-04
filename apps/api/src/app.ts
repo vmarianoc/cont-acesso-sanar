@@ -7,6 +7,7 @@ import redisPlugin from './plugins/redis.js'
 import jwtPlugin from './plugins/jwt.js'
 import rateLimitPlugin from './plugins/rateLimit.js'
 import multiTenantPlugin from './plugins/multiTenant.js'
+import realtimePlugin from './plugins/realtime.js'
 
 import authRoutes from './routes/auth.js'
 import tenantsRoutes from './routes/tenants.js'
@@ -24,6 +25,7 @@ import unidadesRoutes from './routes/unidades.js'
 import acessoRoutes from './routes/acesso.js'
 import encomendasRoutes from './routes/encomendas.js'
 import dispositivosRoutes from './routes/dispositivos.js'
+import solicitacoesRoutes from './routes/solicitacoes.js'
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -52,6 +54,7 @@ export async function buildApp() {
   await fastify.register(jwtPlugin)
   await fastify.register(rateLimitPlugin)
   await fastify.register(multiTenantPlugin)
+  await fastify.register(realtimePlugin)
 
   fastify.get('/health', async () => ({ status: 'ok', ts: new Date().toISOString() }))
 
@@ -71,6 +74,7 @@ export async function buildApp() {
   await fastify.register(acessoRoutes)
   await fastify.register(encomendasRoutes)
   await fastify.register(dispositivosRoutes)
+  await fastify.register(solicitacoesRoutes)
 
   fastify.setErrorHandler((error, request, reply) => {
     fastify.log.error({ err: error, requestId: request.id }, 'Unhandled error')

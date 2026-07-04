@@ -90,6 +90,10 @@ const encomendasRoutes: FastifyPluginAsync = async (fastify) => {
          VALUES ($1, $2, 'Encomenda na portaria', $3, 'encomenda')`,
         [uuidv4(), destinatario, `Chegou uma encomenda de ${remetente}. Código de retirada: ${rows[0].codigo_retirada}`]
       )
+      await fastify.publishRt((request.user as any).schema_name, [`pessoa:${destinatario}`], {
+        tipo: 'encomenda_recebida',
+        dados: { id: rows[0].id, remetente },
+      })
     }
 
     await registrarAuditoria(request.tenantDb!, {

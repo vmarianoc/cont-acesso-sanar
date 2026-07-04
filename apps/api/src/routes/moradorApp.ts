@@ -194,6 +194,13 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
         erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Solicitação pendente não encontrada' },
       })
     }
+
+    // Portaria vê a decisão do morador em tempo real.
+    await fastify.publishRt((request.user as any).schema_name, ['perfil:porteiro'], {
+      tipo: 'solicitacao_decidida',
+      dados: { id, status: parsed.data.status, nome: rows[0].nome, por: ctx.nome },
+    })
+
     return reply.status(200).send({ data: rows[0] })
   })
 }
