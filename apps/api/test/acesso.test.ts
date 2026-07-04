@@ -43,7 +43,7 @@ describe('liberação de acesso facial por área', () => {
     leitorPiscinaId = uuidv4()
     await sql.unsafe(`SET search_path TO ${t.schemaName}, public`)
     await sql.unsafe(
-      `INSERT INTO espacos (id, nome, area) VALUES ($1, 'Salão Teste', 'salao_teste')`,
+      `INSERT INTO espacos (id, nome, area, periodos) VALUES ($1, 'Salão Teste', 'salao_teste', '[{\"nome\":\"dia\",\"inicio\":\"00:00\",\"fim\":\"23:59\"}]')`,
       [espacoId]
     )
     await sql.unsafe(
@@ -92,7 +92,7 @@ describe('liberação de acesso facial por área', () => {
       method: 'POST',
       url: '/morador/reservas',
       headers: { authorization: `Bearer ${tokenMorador}` },
-      payload: { espaco_id: espacoId, data: hoje, periodo: '19h–22h' },
+      payload: { espaco_id: espacoId, data: hoje, periodo: 'dia' },
     })
     expect(reserva.statusCode).toBe(201)
 
