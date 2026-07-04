@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
 import { enqueueNotificacao } from '../workers/notificacoesQueue.js'
+import { criarLiberacao } from '../services/acessoService.js'
 
 const CreateAprovacaoBody = z.object({
   pessoa_id: z.string().uuid(),
@@ -134,6 +135,38 @@ const aprovacoesRoutes: FastifyPluginAsync = async (fastify) => {
              VALUES ($1, $2, $3, $4)`,
             [uuidv4(), disp.id, tipoComando, db.json(payload)] as any
           )
+        }
+      }
+
+      // Reserva com aprovação: confirma (ou cancela) a reserva vinculada e,
+      // no aprovado, cria a liberação facial restrita ao período.
+      if (atualizada.tipo === 'reserva_espaco' && atualizada.dados?.reserva_id) {
+        const reservaId = atualizada.dados.reserva_id as string
+        if (status === 'aprovado') {
+          const [reserva] = await db.unsafe(
+            `UPDATE reservas SET status = 'confirmada' WHERE id = $1 RETURNING *`,
+            [reservaId]
+          )
+          if (reserva) {
+            const [espaco] = await db.unsafe(
+              `SELECT area, periodos FROM espacos WHERE id = $1`,
+              [reserva.espaco_id]
+            )
+            const faixa = (espaco?.periodos ?? []).find((p: any) => p.nome === reserva.periodo)
+            if (espaco?.area && faixa) {
+              const dia = new Date(reserva.data).toISOString().slice(0, 10)
+              await criarLiberacao(db, {
+                pessoa_id: reserva.pessoa_id,
+                area: espaco.area,
+                valido_de: `${dia}T${faixa.inicio}:00`,
+                valido_ate: `${dia}T${faixa.fim}:00`,
+                origem_tipo: 'reserva',
+                origem_id: reservaId,
+              })
+            }
+          }
+        } else {
+          await db.unsafe(`UPDATE reservas SET status = 'cancelada' WHERE id = $1`, [reservaId])
         }
       }
 

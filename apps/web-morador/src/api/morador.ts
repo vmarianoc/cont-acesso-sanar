@@ -24,6 +24,8 @@ export interface Espaco {
   id: string
   nome: string
   descricao: string | null
+  periodos: { nome: string; inicio: string; fim: string }[]
+  exige_aprovacao: boolean
 }
 
 export interface Reserva {
@@ -83,3 +85,6 @@ export const confirmarLeitura = (id: string) =>
 export const fetchDocumentos = () => get<DocumentoResumo[]>('/documentos')
 export const baixarDocumento = (id: string) =>
   client.get(`/documentos/${id}/download`, { responseType: 'blob' }).then((r) => r.data as Blob)
+
+export const cancelarReserva = (id: string) =>
+  client.delete(`/morador/reservas/${id}`).then((r) => r.data.data as Reserva)
