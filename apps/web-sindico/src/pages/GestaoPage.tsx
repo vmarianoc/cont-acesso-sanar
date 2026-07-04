@@ -41,6 +41,19 @@ export default function GestaoPage() {
           sub="Toque para revisar"
           onClick={() => navigate('/aprovacoes')}
         />
+        <Card
+          icon="📣"
+          titulo="Comunicados"
+          sub="Publicar avisos com confirmação de leitura"
+          onClick={() => navigate('/comunicados')}
+        />
+        <Card
+          icon="📄"
+          iconBg="bg-gray-800"
+          titulo="Documentos"
+          sub="Convenção, atas e docs por grupo"
+          onClick={() => navigate('/documentos')}
+        />
         {licenca && (
           <Card
             icon="🏢"

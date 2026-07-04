@@ -57,3 +57,29 @@ export const criarReserva = (espaco_id: string, data: string, periodo?: string) 
 
 export const decidirSolicitacao = (id: string, status: 'liberado' | 'recusado') =>
   client.patch(`/morador/solicitacoes/${id}`, { status }).then((r) => r.data.data as Solicitacao)
+
+export interface Comunicado {
+  id: string
+  titulo: string
+  corpo: string
+  prioridade: 'normal' | 'urgente'
+  criado_em: string
+  lido: boolean
+}
+
+export interface DocumentoResumo {
+  id: string
+  titulo: string
+  arquivo_nome: string
+  tamanho: number
+  escopo: 'todos' | 'grupo'
+  grupo_nome: string | null
+  criado_em: string
+}
+
+export const fetchComunicados = () => get<Comunicado[]>('/comunicados')
+export const confirmarLeitura = (id: string) =>
+  client.post(`/comunicados/${id}/lida`).then((r) => r.data.data)
+export const fetchDocumentos = () => get<DocumentoResumo[]>('/documentos')
+export const baixarDocumento = (id: string) =>
+  client.get(`/documentos/${id}/download`, { responseType: 'blob' }).then((r) => r.data as Blob)

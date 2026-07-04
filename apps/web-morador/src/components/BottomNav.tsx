@@ -5,7 +5,8 @@ const ITENS: NavItem[] = [
   { to: '/', label: 'Início', icon: '🏠' },
   { to: '/acesso', label: 'Acesso', icon: '🔑' },
   { to: '/reservas', label: 'Reservas', icon: '📅' },
-  { to: '/encomendas', label: 'Mais', icon: '📦' },
+  { to: '/encomendas', label: 'Pacotes', icon: '📦' },
+  { to: '/avisos', label: 'Avisos', icon: '🔔' },
 ]
 
 export default function BottomNav() {

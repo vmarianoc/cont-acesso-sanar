@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage'
 import AutorizarPage from './pages/AutorizarPage'
 import ReservasPage from './pages/ReservasPage'
 import EncomendasPage from './pages/EncomendasPage'
+import AvisosPage from './pages/AvisosPage'
 import RealtimeSync from './components/RealtimeSync'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/acesso" element={<RequireAuth><AutorizarPage /></RequireAuth>} />
         <Route path="/reservas" element={<RequireAuth><ReservasPage /></RequireAuth>} />
         <Route path="/encomendas" element={<RequireAuth><EncomendasPage /></RequireAuth>} />
+        <Route path="/avisos" element={<RequireAuth><AvisosPage /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
