@@ -8,6 +8,8 @@ const ACOES = [
   { to: '/acesso', label: 'Portaria', icon: '🔑' },
   { to: '/reservas', label: 'Reservas', icon: '📅' },
   { to: '/encomendas', label: 'Encomendas', icon: '📦' },
+  { to: '/avisos', label: 'Avisos', icon: '🔔' },
+  { to: '/ocorrencias', label: 'Ocorrências', icon: '📋' },
 ]
 
 export default function HomePage() {

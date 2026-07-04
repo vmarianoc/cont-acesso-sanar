@@ -5,6 +5,7 @@ import PortariaPage from './pages/PortariaPage'
 import VisitantePage from './pages/VisitantePage'
 import ImportarPage from './pages/ImportarPage'
 import SolicitarPage from './pages/SolicitarPage'
+import OcorrenciaPage from './pages/OcorrenciaPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token')
@@ -33,6 +34,14 @@ export default function App() {
           element={
             <RequireAuth>
               <VisitantePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/ocorrencia"
+          element={
+            <RequireAuth>
+              <OcorrenciaPage />
             </RequireAuth>
           }
         />

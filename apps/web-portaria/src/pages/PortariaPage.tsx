@@ -149,6 +149,12 @@ export default function PortariaPage() {
           Cadastrar Visitante
         </button>
         <button
+          onClick={() => navigate('/ocorrencia')}
+          className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+        >
+          Registrar Ocorrência
+        </button>
+        <button
           onClick={() => navigate('/solicitar')}
           className="bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
         >

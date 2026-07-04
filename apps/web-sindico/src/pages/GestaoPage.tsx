@@ -42,6 +42,13 @@ export default function GestaoPage() {
           onClick={() => navigate('/aprovacoes')}
         />
         <Card
+          icon="📋"
+          iconBg="bg-gray-800"
+          titulo="Ocorrências"
+          sub="Livro digital da portaria"
+          onClick={() => navigate('/ocorrencias')}
+        />
+        <Card
           icon="📣"
           titulo="Comunicados"
           sub="Publicar avisos com confirmação de leitura"
