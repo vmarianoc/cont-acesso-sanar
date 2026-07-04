@@ -65,6 +65,13 @@ export default function LoginPage() {
         <Button type="submit" disabled={loading} className="w-full">
           {loading ? 'Entrando...' : 'Entrar'}
         </Button>
+        <button
+          type="button"
+          onClick={() => navigate('/recuperar')}
+          className="w-full text-sm text-gray-500 hover:text-brand-600"
+        >
+          Esqueci minha senha
+        </button>
       </form>
     </div>
   )

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
+import RecuperarPage from './pages/RecuperarPage'
 import PortariaPage from './pages/PortariaPage'
 import VisitantePage from './pages/VisitantePage'
 import ImportarPage from './pages/ImportarPage'
@@ -17,6 +18,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/portaria" replace />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/recuperar" element={<RecuperarPage />} />
+        <Route path="/convite" element={<RecuperarPage convite />} />
         <Route
           path="/portaria"
           element={

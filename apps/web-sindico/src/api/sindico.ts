@@ -152,3 +152,6 @@ export const publicarDocumento = (form: FormData) =>
     .then((r) => r.data.data as Documento)
 export const removerDocumento = (id: string) =>
   client.delete(`/documentos/${id}`).then((r) => r.data.data)
+
+export const gerarConvite = (usuarioId: string) =>
+  client.post(`/usuarios/${usuarioId}/convite`).then((r) => r.data.data as { token: string; expira_em_dias: number })

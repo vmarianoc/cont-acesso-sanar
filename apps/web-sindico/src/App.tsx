@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
+import RecuperarPage from './pages/RecuperarPage'
 import GestaoPage from './pages/GestaoPage'
 import AprovacoesPage from './pages/AprovacoesPage'
 import LicencaPage from './pages/LicencaPage'
@@ -18,6 +19,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/recuperar" element={<RecuperarPage />} />
+        <Route path="/convite" element={<RecuperarPage convite />} />
         <Route path="/" element={<RequireAuth><GestaoPage /></RequireAuth>} />
         <Route path="/aprovacoes" element={<RequireAuth><AprovacoesPage /></RequireAuth>} />
         <Route path="/unidades" element={<RequireAuth><UnidadesPage /></RequireAuth>} />

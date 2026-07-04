@@ -6,6 +6,7 @@ import {
   fetchPessoasSemUsuario,
   criarUsuario,
   atualizarUsuario,
+  gerarConvite,
   type Usuario,
 } from '../api/sindico'
 import BottomNav from '../components/BottomNav'
@@ -57,6 +58,13 @@ export default function UsuariosPage() {
     mutationFn: (u: Usuario) => atualizarUsuario(u.id, { ativo: !u.ativo }),
     onSuccess: invalidar,
     onError: (err: any) => setError(err.response?.data?.erro?.mensagem ?? 'Falha ao atualizar'),
+  })
+
+  const [conviteDe, setConviteDe] = useState<{ email: string; token: string } | null>(null)
+  const convidar = useMutation({
+    mutationFn: (u: Usuario) => gerarConvite(u.id).then((r) => ({ email: u.email, token: r.token })),
+    onSuccess: setConviteDe,
+    onError: (err: any) => setError(err.response?.data?.erro?.mensagem ?? 'Falha ao gerar convite'),
   })
 
   const onSubmit = (e: React.FormEvent) => {
@@ -155,15 +163,40 @@ export default function UsuariosPage() {
               </span>
             </span>
             <Badge tone={u.ativo ? 'green' : 'red'}>{u.ativo ? 'ativo' : 'inativo'}</Badge>
-            <button
-              onClick={() => alternarAtivo.mutate(u)}
-              disabled={alternarAtivo.isPending}
-              className="text-xs text-brand-600 font-semibold disabled:opacity-50"
-            >
-              {u.ativo ? 'Desativar' : 'Ativar'}
-            </button>
+            <span className="flex flex-col items-end gap-1 text-xs font-semibold">
+              <button
+                onClick={() => alternarAtivo.mutate(u)}
+                disabled={alternarAtivo.isPending}
+                className="text-brand-600 disabled:opacity-50"
+              >
+                {u.ativo ? 'Desativar' : 'Ativar'}
+              </button>
+              <button
+                onClick={() => convidar.mutate(u)}
+                disabled={convidar.isPending}
+                className="text-gray-500 disabled:opacity-50"
+              >
+                Convite
+              </button>
+            </span>
           </div>
         ))}
+
+        {conviteDe && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-brand-100">
+            <p className="text-sm font-semibold text-gray-900">Convite gerado para {conviteDe.email}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Envie o código abaixo (válido por 7 dias). O morador ativa a conta em “Esqueci minha
+              senha → Já tenho um código” ou na tela de convite do app.
+            </p>
+            <p className="mt-2 break-all rounded-xl bg-gray-50 p-3 font-mono text-xs text-gray-800">
+              {conviteDe.token}
+            </p>
+            <button onClick={() => setConviteDe(null)} className="mt-2 text-xs font-semibold text-brand-600">
+              Fechar
+            </button>
+          </div>
+        )}
       </div>
 
       <BottomNav />

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
+import RecuperarPage from './pages/RecuperarPage'
 import HomePage from './pages/HomePage'
 import AutorizarPage from './pages/AutorizarPage'
 import ReservasPage from './pages/ReservasPage'
@@ -22,6 +23,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/recuperar" element={<RecuperarPage />} />
+        <Route path="/convite" element={<RecuperarPage convite />} />
         <Route path="/" element={<RequireAuth><HomePage /></RequireAuth>} />
         <Route path="/acesso" element={<RequireAuth><AutorizarPage /></RequireAuth>} />
         <Route path="/reservas" element={<RequireAuth><ReservasPage /></RequireAuth>} />

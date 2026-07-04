@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
+import RecuperarPage from './pages/RecuperarPage'
 import PainelPage from './pages/PainelPage'
 import CadastrosPage from './pages/CadastrosPage'
 import EncomendasPage from './pages/EncomendasPage'
@@ -16,6 +17,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/recuperar" element={<RecuperarPage />} />
+        <Route path="/convite" element={<RecuperarPage convite />} />
         <Route path="/" element={<RequireAuth><PainelPage /></RequireAuth>} />
         <Route path="/cadastros" element={<RequireAuth><CadastrosPage /></RequireAuth>} />
         <Route path="/encomendas" element={<RequireAuth><EncomendasPage /></RequireAuth>} />
