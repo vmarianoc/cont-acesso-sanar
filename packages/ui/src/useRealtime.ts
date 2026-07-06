@@ -20,14 +20,28 @@ export function useRealtime(onEvento: (evento: EventoRealtime) => void) {
     if (!token) return
 
     const base = (import.meta as any).env?.VITE_API_URL ?? '/api'
-    const es = new EventSource(`${base}/rt/stream?token=${encodeURIComponent(token)}`)
-    es.onmessage = (msg) => {
-      try {
-        handler.current(JSON.parse(msg.data))
-      } catch {
-        /* mensagens de heartbeat/formatos inesperados são ignoradas */
-      }
+    let es: EventSource | null = null
+    let cancelado = false
+
+    // Ticket de uso único evita expor o JWT na query string (logs de proxy).
+    fetch(`${base}/rt/ticket`, { method: 'POST', headers: { authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then(({ data }) => {
+        if (cancelado || !data?.ticket) return
+        es = new EventSource(`${base}/rt/stream?ticket=${encodeURIComponent(data.ticket)}`)
+        es.onmessage = (msg) => {
+          try {
+            handler.current(JSON.parse(msg.data))
+          } catch {
+            /* heartbeats/formatos inesperados são ignorados */
+          }
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelado = true
+      es?.close()
     }
-    return () => es.close()
   }, [])
 }

@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin'
 import { Redis } from 'ioredis'
 import type { FastifyPluginAsync, FastifyReply } from 'fastify'
+import { randomUUID } from 'node:crypto'
 
 /**
  * Tempo real via SSE + Redis pub/sub.
@@ -45,14 +46,37 @@ const realtimePlugin: FastifyPluginAsync = async (fastify) => {
     }
   })
 
+  /**
+   * EventSource não envia headers; para não expor o JWT em query string/logs
+   * de proxy, o cliente troca o JWT por um ticket de uso único (30s) e abre
+   * o stream com ele. O token via query segue aceito como fallback legado.
+   */
+  fastify.post('/rt/ticket', { onRequest: [fastify.authenticate] }, async (request, reply) => {
+    const ticket = randomUUID()
+    await fastify.redis.set(
+      `rt:ticket:${ticket}`,
+      JSON.stringify(request.user),
+      'EX',
+      30
+    )
+    return reply.status(201).send({ data: { ticket } })
+  })
+
   fastify.get('/rt/stream', async (request, reply) => {
-    // EventSource não envia headers — o token vem por query string.
-    const { token } = request.query as { token?: string }
+    const { token, ticket } = request.query as { token?: string; ticket?: string }
     let payload: { sub: string; perfil: string; schema_name: string }
-    try {
-      payload = fastify.jwt.verify(token ?? '')
-    } catch {
-      return reply.status(401).send({ erro: { codigo: 'NAO_AUTENTICADO', mensagem: 'Token inválido' } })
+    if (ticket) {
+      const bruto = await fastify.redis.getdel(`rt:ticket:${ticket}`)
+      if (!bruto) {
+        return reply.status(401).send({ erro: { codigo: 'NAO_AUTENTICADO', mensagem: 'Ticket inválido ou expirado' } })
+      }
+      payload = JSON.parse(bruto)
+    } else {
+      try {
+        payload = fastify.jwt.verify(token ?? '')
+      } catch {
+        return reply.status(401).send({ erro: { codigo: 'NAO_AUTENTICADO', mensagem: 'Token inválido' } })
+      }
     }
 
     const schema = payload.schema_name

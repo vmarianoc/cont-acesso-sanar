@@ -11,10 +11,12 @@ const CreateEncomendaBody = z.object({
   remetente: z.string().min(1),
   descricao: z.string().optional(),
   prateleira: z.string().optional(),
+  foto_url: z.string().url().optional(),
 })
 
 const RetirarBody = z.object({
   codigo_retirada: z.string().min(1),
+  retirada_por: z.string().optional(),
 })
 
 const gerarCodigo = () => String(Math.floor(1000 + Math.random() * 9000))
@@ -63,7 +65,7 @@ const encomendasRoutes: FastifyPluginAsync = async (fastify) => {
         erro: { codigo: 'DADOS_INVALIDOS', mensagem: parsed.error.errors[0].message },
       })
     }
-    const { unidade_id, pessoa_id, remetente, descricao, prateleira } = parsed.data
+    const { unidade_id, pessoa_id, remetente, descricao, prateleira, foto_url } = parsed.data
     const userId = (request.user as any).sub as string
 
     // Sem pessoa explícita, a encomenda vai para o responsável (principal) da unidade.
@@ -79,9 +81,9 @@ const encomendasRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const rows = await request.tenantDb!.unsafe(
-      `INSERT INTO encomendas (id, pessoa_id, unidade_id, remetente, descricao, prateleira, codigo_retirada)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [uuidv4(), destinatario, unidade_id, remetente, descricao ?? null, prateleira ?? null, gerarCodigo()]
+      `INSERT INTO encomendas (id, pessoa_id, unidade_id, remetente, descricao, prateleira, codigo_retirada, foto_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [uuidv4(), destinatario, unidade_id, remetente, descricao ?? null, prateleira ?? null, gerarCodigo(), foto_url ?? null]
     )
 
     if (destinatario) {
@@ -137,8 +139,8 @@ const encomendasRoutes: FastifyPluginAsync = async (fastify) => {
 
     const userId = (request.user as any).sub as string
     const rows = await request.tenantDb!.unsafe(
-      `UPDATE encomendas SET status = 'retirada', retirada_em = NOW() WHERE id = $1 RETURNING *`,
-      [id]
+      `UPDATE encomendas SET status = 'retirada', retirada_em = NOW(), retirada_por = $2 WHERE id = $1 RETURNING *`,
+      [id, parsed.data.retirada_por ?? null]
     )
     await registrarAuditoria(request.tenantDb!, {
       usuario_id: userId,
