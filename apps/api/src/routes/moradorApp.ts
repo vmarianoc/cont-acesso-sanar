@@ -249,6 +249,59 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.status(200).send({ data: rows[0] })
   })
 
+  fastify.get('/morador/pets', async (request, reply) => {
+    const db = request.tenantDb!
+    const ctx = await contextoMorador(db, (request.user as any).sub)
+    if (!ctx) return reply.status(200).send({ data: [] })
+    const rows = await db.unsafe(
+      `SELECT * FROM pets WHERE pessoa_id = $1 ORDER BY criado_em DESC`,
+      [ctx.pessoa_id]
+    )
+    return reply.status(200).send({ data: rows })
+  })
+
+  fastify.post('/morador/pets', async (request, reply) => {
+    const PetBody = z.object({
+      nome: z.string().min(1),
+      especie: z.enum(['cachorro', 'gato', 'ave', 'outro']).default('cachorro'),
+      raca: z.string().optional(),
+    })
+    const parsed = PetBody.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        erro: { codigo: 'DADOS_INVALIDOS', mensagem: parsed.error.errors[0].message },
+      })
+    }
+    const db = request.tenantDb!
+    const ctx = await contextoMorador(db, (request.user as any).sub)
+    if (!ctx) {
+      return reply.status(404).send({ erro: { codigo: 'SEM_PERFIL', mensagem: 'Sem perfil de morador' } })
+    }
+    const rows = await db.unsafe(
+      `INSERT INTO pets (id, pessoa_id, unidade_id, nome, especie, raca)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [uuidv4(), ctx.pessoa_id, ctx.unidade_id, parsed.data.nome, parsed.data.especie, parsed.data.raca ?? null]
+    )
+    return reply.status(201).send({ data: rows[0] })
+  })
+
+  fastify.delete('/morador/pets/:id', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const db = request.tenantDb!
+    const ctx = await contextoMorador(db, (request.user as any).sub)
+    if (!ctx) {
+      return reply.status(404).send({ erro: { codigo: 'SEM_PERFIL', mensagem: 'Sem perfil de morador' } })
+    }
+    const rows = await db.unsafe(
+      `DELETE FROM pets WHERE id = $1 AND pessoa_id = $2 RETURNING *`,
+      [id, ctx.pessoa_id]
+    )
+    if (rows.length === 0) {
+      return reply.status(404).send({ erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Pet não encontrado' } })
+    }
+    return reply.status(200).send({ data: rows[0] })
+  })
+
   fastify.get('/morador/solicitacoes', async (request, reply) => {
     const db = request.tenantDb!
     const ctx = await contextoMorador(db, (request.user as any).sub)

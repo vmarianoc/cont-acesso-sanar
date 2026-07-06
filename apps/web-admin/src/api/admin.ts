@@ -77,6 +77,7 @@ export const criarLiberacao = (payload: {
   area: string
   valido_de: string
   valido_ate: string
+  recorrencia?: { dias: number[]; hora_inicio: string; hora_fim: string }
 }) => client.post('/liberacoes', payload).then((r) => r.data.data as Liberacao)
 
 export const revogarLiberacao = (id: string) =>
@@ -101,3 +102,6 @@ export const criarDispositivo = (payload: { nome: string; tipo: string; area: st
 
 export const atualizarDispositivo = (id: string, payload: { ativo?: boolean; area?: string; nome?: string }) =>
   client.patch(`/dispositivos/${id}`, payload).then((r) => r.data.data as Dispositivo)
+
+export const atualizarPessoa = (id: string, payload: { nome?: string; telefone?: string; ativo?: boolean }) =>
+  client.patch(`/pessoas/${id}`, payload).then((r) => r.data.data as Pessoa)

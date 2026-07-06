@@ -81,6 +81,76 @@ const pessoasRoutes: FastifyPluginAsync = async (fastify) => {
 
     return reply.status(201).send({ data: rows[0] })
   })
+
+  const UpdatePessoaBody = z.object({
+    nome: z.string().min(2).optional(),
+    email: z.string().email().nullable().optional(),
+    telefone: z.string().nullable().optional(),
+    ativo: z.boolean().optional(),
+  })
+
+  fastify.patch('/pessoas/:id', async (request, reply) => {
+    const perfil = (request.user as any).perfil as string
+    if (!['admin', 'sindico', 'superadmin'].includes(perfil)) {
+      return reply.status(403).send({
+        erro: { codigo: 'ACESSO_NEGADO', mensagem: 'Apenas síndico ou administrador editam pessoas' },
+      })
+    }
+    const { id } = request.params as { id: string }
+    const parsed = UpdatePessoaBody.safeParse(request.body)
+    if (!parsed.success || Object.keys(parsed.data).length === 0) {
+      return reply.status(400).send({
+        erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Nada para atualizar' },
+      })
+    }
+    const [antes] = await request.tenantDb!.unsafe(`SELECT * FROM pessoas WHERE id = $1`, [id])
+    if (!antes) {
+      return reply.status(404).send({
+        erro: { codigo: 'NAO_ENCONTRADA', mensagem: 'Pessoa não encontrada' },
+      })
+    }
+    const sets: string[] = ['atualizado_em = NOW()']
+    const params: any[] = []
+    for (const [campo, valor] of Object.entries(parsed.data)) {
+      params.push(valor)
+      sets.push(`${campo} = $${params.length}`)
+    }
+    params.push(id)
+    const rows = await request.tenantDb!.unsafe(
+      `UPDATE pessoas SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
+      params
+    )
+    await registrarAuditoria(request.tenantDb!, {
+      usuario_id: (request.user as any).sub,
+      acao: 'pessoa.atualizar',
+      tabela: 'pessoas',
+      registro_id: id,
+      dados_antes: antes,
+      dados_depois: rows[0],
+      ip: request.ip,
+    })
+    return reply.status(200).send({ data: rows[0] })
+  })
+
+  // Linha do tempo do "Cadastro Vivo": vínculos e mudanças registradas.
+  fastify.get('/pessoas/:id/timeline', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const rows = await request.tenantDb!.unsafe(
+      `SELECT 'vinculo' AS tipo,
+              'Vínculo ' || v.tipo_vinculo || ' na unidade ' || u.numero ||
+                CASE WHEN v.ativo THEN ' (ativo)' ELSE ' (encerrado)' END AS descricao,
+              v.inicio AS em
+       FROM vinculos_unidade v JOIN unidades u ON u.id = v.unidade_id
+       WHERE v.pessoa_id = $1
+       UNION ALL
+       SELECT 'historico' AS tipo, h.campo || ': ' || COALESCE(h.valor_antes,'—') || ' → ' ||
+              COALESCE(h.valor_depois,'—') AS descricao, h.criado_em AS em
+       FROM historico_pessoas h WHERE h.pessoa_id = $1
+       ORDER BY em DESC LIMIT 50`,
+      [id]
+    )
+    return reply.status(200).send({ data: rows })
+  })
 }
 
 export default pessoasRoutes

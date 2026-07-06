@@ -6,6 +6,7 @@ import Logo from '../components/Logo'
 import { useAuth } from '../hooks/useAuth'
 import { useDispositivos } from '../hooks/useDispositivos'
 import { useRegistrarEvento } from '../hooks/useRegistrarEvento'
+import BuscaGlobal from '../components/BuscaGlobal'
 
 const CAMERAS = [
   { id: '1', label: 'Entrada Principal' },
@@ -62,6 +63,7 @@ export default function PortariaPage() {
       <header className="bg-brand-700 px-4 py-2 flex flex-wrap items-center justify-between gap-y-2 flex-shrink-0">
         <Logo subtitle="Portaria" />
         <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-6">
+          <BuscaGlobal />
           <Clock />
           <StatusBar />
           {podeImportar && (

@@ -20,6 +20,13 @@ const CreateLiberacaoBody = z.object({
   metodo: z.enum(['facial', 'qrcode', 'biometria', 'manual']).default('facial'),
   valido_de: z.string().datetime(),
   valido_ate: z.string().datetime(),
+  recorrencia: z
+    .object({
+      dias: z.array(z.number().min(1).max(7)).min(1),
+      hora_inicio: z.string().regex(/^\d{2}:\d{2}$/),
+      hora_fim: z.string().regex(/^\d{2}:\d{2}$/),
+    })
+    .optional(),
 }).refine((b) => b.pessoa_id || b.visitante_id, { message: 'Informe pessoa_id ou visitante_id' })
 
 const acessoRoutes: FastifyPluginAsync = async (fastify) => {

@@ -21,6 +21,8 @@ export default function LiberacoesPage() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const [buscaPessoa, setBuscaPessoa] = useState('')
   const [form, setForm] = useState({ pessoa_id: '', area: '', valido_de: '', valido_ate: '' })
+  const [recorrente, setRecorrente] = useState(false)
+  const [rec, setRec] = useState({ dias: [] as number[], hora_inicio: '08:00', hora_fim: '18:00' })
   const [error, setError] = useState<string | null>(null)
 
   const { data: liberacoes } = useQuery({
@@ -43,6 +45,7 @@ export default function LiberacoesPage() {
         area: form.area,
         valido_de: new Date(form.valido_de).toISOString(),
         valido_ate: new Date(form.valido_ate).toISOString(),
+        ...(recorrente && rec.dias.length ? { recorrencia: rec } : {}),
       }),
     onSuccess: () => {
       invalidar()
@@ -141,6 +144,43 @@ export default function LiberacoesPage() {
                 />
               </label>
             </div>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={recorrente} onChange={(e) => setRecorrente(e.target.checked)} />
+              Recorrente (prestador fixo: dias da semana + horário)
+            </label>
+            {recorrente && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-1">
+                  {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((d, i) => (
+                    <button
+                      type="button"
+                      key={d}
+                      onClick={() =>
+                        setRec((p) => ({
+                          ...p,
+                          dias: p.dias.includes(i + 1) ? p.dias.filter((x) => x !== i + 1) : [...p.dias, i + 1],
+                        }))
+                      }
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        rec.dias.includes(i + 1) ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">Das</span>
+                    <input type="time" value={rec.hora_inicio} onChange={(e) => setRec((p) => ({ ...p, hora_inicio: e.target.value }))} className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm" />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">Até</span>
+                    <input type="time" value={rec.hora_fim} onChange={(e) => setRec((p) => ({ ...p, hora_fim: e.target.value }))} className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm" />
+                  </label>
+                </div>
+              </div>
+            )}
             <Button
               type="submit"
               disabled={criar.isPending || !form.pessoa_id || !form.area || !form.valido_de || !form.valido_ate}

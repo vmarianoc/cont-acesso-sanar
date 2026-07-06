@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppScreen, Header, Button, TextField, Badge, iniciais } from '@condar/ui'
-import { fetchPessoas, criarPessoa } from '../api/admin'
+import { fetchPessoas, criarPessoa, atualizarPessoa } from '../api/admin'
 import BottomNav from '../components/BottomNav'
 
 const TIPOS = [
@@ -110,7 +110,19 @@ export default function CadastrosPage() {
                 {p.cpf ? `Doc. ${p.cpf}` : 'Sem documento'}
               </span>
             </span>
-            <Badge tone={p.tipo === 'morador' ? 'green' : 'neutral'}>{p.tipo}</Badge>
+            <span className="flex flex-col items-end gap-1">
+              <Badge tone={p.tipo === 'morador' ? 'green' : 'neutral'}>{p.tipo}</Badge>
+              <button
+                onClick={() =>
+                  atualizarPessoa(p.id, { ativo: !(p as any).ativo }).then(() =>
+                    qc.invalidateQueries({ queryKey: ['pessoas'] })
+                  )
+                }
+                className="text-xs text-brand-600 font-semibold"
+              >
+                {(p as any).ativo === false ? 'Reativar' : 'Desativar'}
+              </button>
+            </span>
           </div>
         ))}
         {pessoas?.length === 0 && (

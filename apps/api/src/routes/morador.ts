@@ -13,6 +13,7 @@ const CreateVeiculoBody = z.object({
   placa: z.string().min(6).max(8),
   modelo: z.string().optional(),
   cor: z.string().optional(),
+  vaga: z.string().optional(),
 })
 
 const PreAutorizarVisitanteBody = z.object({
@@ -104,14 +105,14 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
       })
     }
 
-    const { placa, modelo, cor } = parsed.data
+    const { placa, modelo, cor, vaga } = parsed.data
     const id = uuidv4()
 
     const rows = await request.tenantDb!.unsafe(
-      `INSERT INTO veiculos (id, pessoa_id, placa, modelo, cor)
-       SELECT $1, pessoa_id, $2, $3, $4 FROM usuarios_tenant WHERE id = $5
+      `INSERT INTO veiculos (id, pessoa_id, placa, modelo, cor, vaga)
+       SELECT $1, pessoa_id, $2, $3, $4, $5 FROM usuarios_tenant WHERE id = $6
        RETURNING *`,
-      [id, placa.toUpperCase(), modelo ?? null, cor ?? null, userId]
+      [id, placa.toUpperCase(), modelo ?? null, cor ?? null, vaga ?? null, userId]
     )
 
     await registrarAuditoria(request.tenantDb!, {

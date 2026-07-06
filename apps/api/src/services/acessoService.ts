@@ -13,13 +13,14 @@ export interface NovaLiberacao {
   origem_tipo?: 'reserva' | 'visitante' | 'manual'
   origem_id?: string | null
   criado_por?: string | null
+  recorrencia?: { dias?: number[]; hora_inicio?: string; hora_fim?: string } | null
 }
 
 export async function criarLiberacao(sql: Sql, l: NovaLiberacao) {
   const rows = await sql.unsafe(
     `INSERT INTO liberacoes_acesso
-       (id, pessoa_id, visitante_id, area, metodo, valido_de, valido_ate, origem_tipo, origem_id, criado_por)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       (id, pessoa_id, visitante_id, area, metodo, valido_de, valido_ate, origem_tipo, origem_id, criado_por, recorrencia)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
      RETURNING *`,
     [
       uuidv4(),
@@ -32,6 +33,7 @@ export async function criarLiberacao(sql: Sql, l: NovaLiberacao) {
       l.origem_tipo ?? 'manual',
       l.origem_id ?? null,
       l.criado_por ?? null,
+      l.recorrencia ? JSON.stringify(l.recorrencia) : null,
     ]
   )
   return rows[0]
@@ -62,15 +64,32 @@ export async function validarAcessoFacial(
   if (!dispositivo) return { resultado: 'negado', motivo: 'DISPOSITIVO_DESCONHECIDO', area: '' }
   const area: string = dispositivo.area
 
-  // 1) liberação vigente para a área (pessoa ou visitante)
-  const [liberacao] = await sql.unsafe(
-    `SELECT id FROM liberacoes_acesso
+  // 1) liberação vigente para a área (pessoa ou visitante); liberações
+  // recorrentes (ex.: diarista toda terça 8h–17h) ainda exigem que o momento
+  // atual caia no dia-da-semana e faixa horária configurados.
+  const liberacoes = await sql.unsafe(
+    `SELECT id, recorrencia FROM liberacoes_acesso
      WHERE area = $1 AND ativo = true
        AND NOW() BETWEEN valido_de AND valido_ate
        AND ((pessoa_id IS NOT NULL AND pessoa_id = $2) OR (visitante_id IS NOT NULL AND visitante_id = $3))
-     ORDER BY valido_ate DESC LIMIT 1`,
+     ORDER BY valido_ate DESC`,
     [area, params.pessoa_id ?? null, params.visitante_id ?? null]
   )
+  const agora = new Date()
+  const diaIso = ((agora.getDay() + 6) % 7) + 1 // 1=segunda … 7=domingo
+  const horaAtual = agora.toTimeString().slice(0, 5)
+  const liberacao = liberacoes.find((l: any) => {
+    if (!l.recorrencia) return true
+    const r = (typeof l.recorrencia === 'string' ? JSON.parse(l.recorrencia) : l.recorrencia) as {
+      dias?: number[]
+      hora_inicio?: string
+      hora_fim?: string
+    }
+    if (r.dias?.length && !r.dias.includes(diaIso)) return false
+    if (r.hora_inicio && horaAtual < r.hora_inicio) return false
+    if (r.hora_fim && horaAtual > r.hora_fim) return false
+    return true
+  })
   if (liberacao) {
     return { resultado: 'liberado', motivo: 'LIBERACAO_VIGENTE', area, liberacao_id: liberacao.id }
   }
