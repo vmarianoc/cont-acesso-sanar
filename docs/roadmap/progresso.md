@@ -29,6 +29,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | Busca unificada + cadastros vivos | P0 | ✅ | /busca (nome/placa/unidade/documento/pet) na portaria; pets; vaga do veículo; liberação recorrente (prestador); PATCH/timeline de pessoas |
 | LGPD operacional | P0 | ✅ | Export "meus dados" (art. 18), anonimização, retenção automática de eventos (worker diário), consentimento, SSE via ticket de uso único |
 | Multi-unidade e multi-condomínio | P0 | ✅ | /morador/contextos + header x-unidade-id; /auth/contas e /auth/trocar-condominio (mesmo e-mail em vários tenants); seletor no app do morador |
+| Painel da administradora (rede) | P0 | ✅ | `/admin/*` (superadmin): resumo consolidado, lista com uso por condomínio, onboarding self-service (tenant+licença+convite do síndico), plano/ativação; tela Minha Rede no web-admin |
 | Importação via CSV/Excel | P1 | ✅ | `POST /unidades/importar` aceita **PDF, CSV e XLSX** (cabeçalhos flexíveis: unidade, nome, vínculo, documento, email, telefone), com dry-run, idempotência e classificação física/jurídica; validado contra relatório real de 660 unidades (PDF) e fixtures CSV/XLSX |
 | Migração Hikvision | P1 | ⬜ | — |
 | Chat portaria ↔ morador | P1 | ⬜ | — |

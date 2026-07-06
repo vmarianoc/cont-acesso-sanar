@@ -1,138 +1,316 @@
-# condar — Controle de Acesso Condominial
+# condar — Controle de Acesso e Gestão Condominial
 
-condar é uma plataforma SaaS de controle de acesso e gestão condominial (multi-tenant, offline-first).
-Este repositório contém o MVP (Fase 1): **Cloud API** + **painel web da Portaria**.
+**condar** é uma plataforma SaaS multi-tenant de controle de acesso e gestão
+condominial: portaria digital, liberação facial por área, comunicados,
+reservas, encomendas, ocorrências e painel da administradora — com auditoria
+LGPD de ponta a ponta e tempo real (SSE).
 
-## Documentação
+Documentação de produto/arquitetura/roadmap em [`docs/`](docs/README.md) —
+inclui o [progresso da implementação](docs/roadmap/progresso.md) e o guia de
+[apps nativos](docs/apps-nativos.md).
 
-Documentação completa de produto, arquitetura e **roadmap** em [`docs/`](docs/README.md)
-— incluindo o [roadmap da Fase 1](docs/roadmap/fase-1.md) e o
-[progresso da implementação](docs/roadmap/progresso.md).
+---
 
-## Arquitetura
-
-Monorepo com pnpm workspaces:
+## 1. Visão geral da solução
 
 ```
-apps/api            Cloud API — Node.js 20 + Fastify 4 + PostgreSQL 15 + Redis
-apps/web-portaria   Painel da portaria — React 18 + Vite (PWA)
-apps/web-morador    App do morador (condar) — React 18 + Vite (PWA mobile)
-apps/web-sindico    App do síndico (condar) — gestão / aprovações / licença
-apps/web-admin      App de administração (condar) — cadastros / encomendas / liberações
-packages/shared     Schemas Zod + tipos TypeScript compartilhados
-packages/ui         Design system condar (@condar/ui) — componentes + preset
-infra               docker-compose (Postgres + Redis) para dev local
+                        ┌─────────────────────────────────────────────┐
+                        │                 Cloud API                   │
+  Apps (PWA/nativo) ───►│  Fastify 4 · Node 20 · TS ESM               │
+  web-portaria :5173    │  ├─ PostgreSQL 15  (schema-per-tenant)      │
+  web-morador  :5174    │  ├─ Redis 7        (fila, SSE pub/sub,      │
+  web-sindico  :5175    │  │                  rate-limit, tickets)    │
+  web-admin    :5176    │  └─ Workers        (notificações, retenção) │
+                        └───────────────▲─────────────────────────────┘
+                                        │ /edge/* (sync, validate-license,
+                                        │          validate-access)
+                        ┌───────────────┴────────────┐
+                        │  Edge Service (guarita)     │  ← fora deste repo
+                        │  leitores faciais Hikvision │
+                        └─────────────────────────────┘
 ```
 
-Isolamento multi-tenant por **schema-per-tenant**: cada requisição autenticada
-reserva uma conexão dedicada do pool e fixa `search_path` para o schema do tenant
-(`apps/api/src/plugins/multiTenant.ts` + `fastify.withTenant`), garantindo que uma
-query de um condomínio nunca acesse dados de outro.
+| Workspace | Descrição | Porta dev |
+|---|---|---|
+| `apps/api` | Cloud API (Fastify + Postgres + Redis + BullMQ) | 3000 |
+| `apps/web-portaria` | Console da portaria (desktop-first, PWA) | 5173 |
+| `apps/web-morador` | App do morador (mobile-first, PWA + Capacitor) | 5174 |
+| `apps/web-sindico` | App do síndico — gestão/aprovações/comunicados | 5175 |
+| `apps/web-admin` | Administração — cadastros/encomendas/liberações/**rede** | 5176 |
+| `packages/ui` | Design system `@condar/ui` (componentes, client HTTP, auth, SSE) | — |
+| `packages/shared` | Schemas Zod/typing compartilhados | — |
+| `infra` | docker-compose (Postgres + Redis) para dev | — |
 
-## Requisitos
+**Isolamento multi-tenant:** schema-per-tenant. Cada requisição autenticada
+reserva uma conexão do pool e fixa `search_path` no schema do tenant
+(`apps/api/src/plugins/multiTenant.ts`); serviços públicos usam
+`fastify.withTenant`. Isso impede, por construção, que uma query de um
+condomínio leia dados de outro (há teste de isolamento sob concorrência).
 
-- Node.js 20+, pnpm 10+
-- PostgreSQL 15 e Redis 7 (via Docker ou instalados localmente)
+---
 
-## Setup
+## 2. Requisitos
+
+| Componente | Versão mínima | Observação |
+|---|---|---|
+| Node.js | 20.x | ESM (`"type": "module"`) |
+| pnpm | 10.x | workspaces |
+| PostgreSQL | 15 | extensão `uuid-ossp` (criada pela migration) |
+| Redis | 7 | fila BullMQ + pub/sub SSE + tickets |
+| (produção) SMTP | — | esqueci-senha/convites; sem SMTP roda em modo stub (loga o código) |
+| (apps nativos) JDK 17 + Android SDK | — | só para gerar APK/AAB |
+
+---
+
+## 3. Implantação local (desenvolvimento)
 
 ```bash
-# 1. Subir Postgres + Redis
-cd infra && docker compose up -d && cd ..
+# 1) infraestrutura
+cd infra && docker compose up -d          # Postgres :5432 + Redis :6379
+cd ..
 
-# 2. Instalar dependências
+# 2) dependências
 pnpm install
 
-# 3. Configurar variáveis da API
-cp apps/api/.env.example apps/api/.env   # ajuste se necessário
+# 3) configuração da API
+cp apps/api/.env.example apps/api/.env    # ajuste JWT_SECRET etc.
 
-# 4. Criar schemas (public + tenant)
+# 4) banco: schema public + migrations de todos os tenants
 pnpm --filter api migrate
 
-# 5. Popular dados de demonstração (imprime tenant_id + credenciais)
-pnpm --filter api seed
+# 5) dados de demonstração (tenant "Residencial Horizonte")
+pnpm --filter api seed                    # imprime tenant_id + credenciais
+
+# 6) subir tudo
+pnpm --filter api dev                     # API :3000
+pnpm --filter api worker                  # workers (notificações + retenção LGPD)
+pnpm --filter web-portaria dev            # :5173
+pnpm --filter web-morador  dev            # :5174
+pnpm --filter web-sindico  dev            # :5175
+pnpm --filter web-admin    dev            # :5176
 ```
 
-O comando `seed` cria o tenant demo **Residencial Horizonte** e imprime o
-`tenant_id` e as credenciais. Usuários demo (senha entre parênteses):
+Crie `apps/web-*/.env.local` com `VITE_TENANT_ID=<tenant_id do seed>` para
+pré-preencher o login. Em dev, os apps proxiam `/api` → `:3000`.
 
-| Perfil     | E-mail                | Senha        |
-|------------|-----------------------|--------------|
-| superadmin | superadmin@demo.com   | `super1234`  |
-| síndico    | sindico@demo.com      | `sindico123` |
-| porteiro   | porteiro@demo.com     | `porteiro123`|
-| morador    | morador@demo.com      | `morador123` |
+### Credenciais demo (após o seed)
 
-## Rodando
+| Perfil | E-mail | Senha | Onde usar |
+|---|---|---|---|
+| Superadmin (administradora) | superadmin@demo.com | super1234 | web-admin (painel "Minha rede") |
+| Síndico | sindico@demo.com | sindico123 | web-sindico / web-admin / importação |
+| Porteiro | porteiro@demo.com | porteiro123 | web-portaria |
+| Morador | morador@demo.com | morador123 | web-morador |
+
+---
+
+## 4. Variáveis de ambiente (API)
+
+| Variável | Obrigatória | Default | Descrição |
+|---|---|---|---|
+| `DATABASE_URL` | ✅ | — | `postgres://user:pass@host:5432/db` |
+| `REDIS_URL` | ✅ | — | `redis://host:6379` |
+| `JWT_SECRET` | ✅ | — | segredo dos tokens de acesso (longo e aleatório) |
+| `JWT_REFRESH_SECRET` | ✅ | — | segredo do refresh token |
+| `JWT_EXPIRES_IN` | — | `15m` | validade do access token |
+| `JWT_REFRESH_EXPIRES_IN` | — | `7d` | validade do refresh (cookie httpOnly) |
+| `BCRYPT_ROUNDS` | — | `12` | custo do hash de senha |
+| `PORT` / `HOST` | — | `3000` / `0.0.0.0` | bind da API |
+| `NODE_ENV` | — | `development` | `production` oculta mensagens de erro internas |
+| `SMTP_URL` | — | *(stub)* | ex. `smtps://user:pass@smtp.provedor.com:465`; ausente → códigos saem no log |
+| `SMTP_FROM` | — | `condar <nao-responda@condar.app>` | remetente |
+| `RETENCAO_EVENTOS_DIAS` | — | `365` | retenção LGPD de eventos de acesso/fotos (worker diário) |
+| `LOG_LEVEL` | — | `info` | pino |
+
+Front-ends (build): `VITE_API_URL` (URL pública da API — **obrigatória em
+produção e nos apps nativos**) e `VITE_TENANT_ID` (opcional, pré-preenche o login).
+
+---
+
+## 5. Implantação em produção
+
+### 5.1 Topologia recomendada
+
+- **1+ instâncias da API** atrás de um proxy HTTPS (nginx/Caddy/ALB). O tempo
+  real usa Redis pub/sub, então múltiplas instâncias funcionam sem sticky
+  session (SSE exige `proxy_buffering off`).
+- **1 processo de workers** (`pnpm --filter api worker`) — notificações + retenção LGPD.
+- **PostgreSQL e Redis gerenciados** (RDS/Cloud SQL/ElastiCache ou
+  equivalentes), com backup automático do Postgres.
+- **Front-ends são estáticos**: `pnpm -r build` gera `apps/web-*/dist` —
+  sirva por CDN/nginx (SPA fallback para `index.html`).
+
+### 5.2 Passo a passo (VM única com nginx)
 
 ```bash
-# API em :3000 e portaria em :5173
-pnpm dev
+# dependências: node 20, pnpm, postgres 15, redis 7, nginx
 
-# ou separadamente
-pnpm --filter api dev
-pnpm --filter web-portaria dev
+git clone <repo> /opt/condar && cd /opt/condar
+pnpm install --frozen-lockfile
 
-# worker de notificações (BullMQ) — opcional
-pnpm --filter api worker
+# API
+cp apps/api/.env.example apps/api/.env    # DATABASE_URL, REDIS_URL, JWT_*, SMTP_URL,
+                                          # NODE_ENV=production
+pnpm --filter api migrate
+
+# builds dos apps (aponte para a URL pública da API)
+VITE_API_URL=https://api.seudominio.com.br pnpm -r build
 ```
 
-No login da portaria, informe o `tenant_id` do seed (ou defina
-`VITE_TENANT_ID` em `apps/web-portaria/.env.local` para pré-preencher — veja
-`apps/web-portaria/.env.example`).
+`systemd` (uma unit para a API, outra para os workers):
 
-## Testes
+```ini
+# /etc/systemd/system/condar-api.service
+[Unit]
+Description=condar API
+After=network.target postgresql.service redis.service
+
+[Service]
+WorkingDirectory=/opt/condar/apps/api
+EnvironmentFile=/opt/condar/apps/api/.env
+ExecStart=/usr/bin/node --import tsx src/index.ts
+Restart=always
+User=condar
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```ini
+# /etc/systemd/system/condar-workers.service  (mesma base, ExecStart abaixo)
+ExecStart=/usr/bin/node --import tsx src/workers/index.ts
+```
+
+nginx (API + um app; repita o bloco de site para cada front):
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name api.seudominio.com.br;
+  # ssl_certificate ... (certbot/letsencrypt)
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Host $host;
+  }
+  # SSE: sem buffering e timeout longo
+  location /rt/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+    proxy_set_header Connection '';
+    proxy_http_version 1.1;
+  }
+}
+
+server {
+  listen 443 ssl http2;
+  server_name morador.seudominio.com.br;
+  root /opt/condar/apps/web-morador/dist;
+  location / { try_files $uri /index.html; }   # SPA fallback
+}
+```
+
+### 5.3 Checklist de produção
+
+- [ ] `JWT_SECRET`/`JWT_REFRESH_SECRET` longos e únicos; `NODE_ENV=production`
+- [ ] HTTPS em tudo (cookies de refresh são `secure` em produção)
+- [ ] `SMTP_URL` configurado (esqueci-senha/convites por e-mail)
+- [ ] Workers rodando (sem eles não há push interno nem retenção LGPD)
+- [ ] Backup diário do Postgres (`pg_dump -Fc`) + teste de restore
+- [ ] `RETENCAO_EVENTOS_DIAS` de acordo com a política de privacidade do condomínio
+- [ ] Monitorar `/health` (retorna 200) e logs estruturados (pino/JSON em produção)
+- [ ] **Nunca versionar PDFs/dados pessoais** (LGPD — `*.pdf` está no `.gitignore`)
+
+### 5.4 Provisionamento de um novo condomínio (administradora)
+
+Pelo painel **web-admin → Minha rede** (perfil `superadmin`):
+1. "+ Condomínio": nome, plano (START 50 / PRO 500 / ENTERPRISE ∞), nome e
+   e-mail do síndico.
+2. O sistema cria o tenant (schema isolado + licença com `license_key`),
+   estrutura mínima e envia o **convite do síndico** (7 dias) — ele define a
+   própria senha em "Ativar minha conta".
+3. O síndico importa as unidades/moradores por **PDF, CSV ou XLSX**
+   (`web-portaria → Importar`, com dry-run) e convida os moradores
+   (tela Usuários → Convite).
+4. Plano/ativação podem ser alterados a qualquer momento no mesmo painel.
+
+Via API: `POST /admin/condominios`, `PATCH /admin/condominios/:id`,
+`GET /admin/resumo|/admin/condominios` (token superadmin).
+
+---
+
+## 6. Apps nativos (Android/iOS)
+
+Os quatro apps são PWAs instaláveis e também têm projetos **Capacitor**
+versionados (`apps/*/android`, appIds `br.com.condar.*`). Para gerar o APK:
 
 ```bash
-pnpm --filter api test     # Vitest: auth, isolamento multi-tenant, /eventos, fluxo de aprovações
-pnpm -r build              # typecheck + build de todos os workspaces
+cd apps/web-morador
+VITE_API_URL=https://api.seudominio.com.br pnpm app:android
+# → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-O CI (`.github/workflows/ci.yml`) sobe Postgres + Redis, roda typecheck,
-migrations, testes e build a cada push/PR.
+Detalhes (release/assinatura/Play Store/iOS): [`docs/apps-nativos.md`](docs/apps-nativos.md).
 
-## Funcionalidades do MVP
+---
 
-- **Auth**: JWT (15 min) + refresh token rotativo; **MFA (TOTP)** obrigatório
-  para perfis admin/síndico quando ativado (`/auth/mfa/setup`, `/auth/mfa/enable`).
-- **Portaria (web/PWA)**: feed de eventos em tempo real, registro manual de
-  acesso, cadastro/pré-autorização de visitantes, indicador online/offline.
-- **App do Morador (condar, PWA mobile)**: home com resumo da unidade,
-  autorização de visitante na portaria, reserva de áreas comuns e encomendas
-  aguardando retirada (`/morador/resumo`, `/morador/encomendas`, `/espacos`,
-  `/morador/reservas`, `/morador/solicitacoes`).
-- **App do Síndico (condar, PWA mobile)**: painel de gestão, central de
-  aprovações (aprovar/reprovar), gestão de usuários (convidar síndico/porteiro/
-  morador, vincular a pessoa, ativar/desativar) e visão de plano/licença com
-  uso de unidades e dispositivos.
-- **Design system (`@condar/ui`)**: componentes e preset Tailwind
-  compartilhados por todos os apps (regra de reúso de layout em `CLAUDE.md`).
-- **Unidades**: CRUD de condomínios, blocos e unidades + gestão de ocupantes
-  (`/condominios`, `/blocos`, `/unidades`, `/unidades/:id/ocupantes`) com a
-  regra de vínculo principal único por unidade.
-- **Importação de unidades (PDF)**: `POST /unidades/importar` (síndico/admin)
-  faz upload do relatório "Contatos das unidades" do condomínio; com
-  `?dry_run=true` (padrão) apenas pré-visualiza, e `?dry_run=false` grava
-  (idempotente) condomínio/blocos/unidades/moradores/vínculos.
-- **Licenciamento**: limites por plano (START 50 / PRO 500 / ENTERPRISE ∞)
-  aplicados na criação de unidades e na importação; `GET /licenca` mostra
-  plano, limites e uso atual.
-- **Cadastro Vivo**: ao aprovar uma solicitação (`PATCH /aprovacoes/:id`), o
-  sistema enfileira um comando para o Edge (`sync_queue`) e notifica o morador,
-  de forma transacional.
-- **LGPD**: log de auditoria append-only (`auditoria`) em mutações sensíveis
-  (pessoas, veículos, aprovações).
-- **Edge Sync**: ingestão de eventos, heartbeat e fila de comandos
-  (`/edge/sync/*`); validação de licença pelo Edge
-  (`POST /edge/validate-license`) com vínculo ao hardware por fingerprint e
-  modo degradado (o acesso físico nunca é bloqueado).
+## 7. Integração com o Edge (guarita)
 
-> Integrações externas (FCM/APNs, OCR, SDK de hardware Hikvision/Intelbras)
-> são stubs claramente marcados, coerentes com o escopo da Fase 1.
+O Edge Service (Windows/.NET ou Go — fora deste repo) consome:
 
-## Claude Code na web
+| Endpoint | Uso |
+|---|---|
+| `POST /edge/validate-license` | ativação com vínculo de hardware (fingerprint) e modo degradado |
+| `POST /edge/validate-access` | leitor facial → `pessoa_id` → liberado/negado por área (agendamentos, recorrência) |
+| `GET /edge/sync/comandos` | fila de comandos (Cadastro Vivo → hardware) |
+| `POST /edge/sync/eventos` | upload de eventos offline-first |
+| `POST /edge/sync/heartbeat` | saúde do dispositivo |
 
-O repositório inclui um hook de `SessionStart`
-(`.claude/hooks/session-start.sh`) que, em sessões remotas, sobe Postgres +
-Redis, instala dependências e roda as migrations automaticamente — permitindo
-rodar testes e a aplicação sem setup manual.
+Regra de ouro: o acesso físico **nunca** é bloqueado por indisponibilidade da
+Cloud — o Edge decide localmente em modo degradado e sincroniza depois.
+
+---
+
+## 8. Operação e verificação
+
+```bash
+# testes (exige Postgres+Redis de dev)
+pnpm --filter api test          # suíte completa (94 testes)
+
+# typecheck de tudo
+pnpm -r typecheck
+
+# builds
+pnpm -r build
+```
+
+CI (GitHub Actions): sobe Postgres+Redis, typecheck dos 6 pacotes, migrate,
+testes e build a cada push.
+
+**Migrations:** numeradas e idempotentes em `apps/api/src/db/migrations/`
+(`001` = schema public, reaplicado sempre; `002+` = tenants, aplicadas em ordem
+a todos os schemas). Para atualizar produção: `git pull && pnpm install && pnpm
+--filter api migrate && systemctl restart condar-api condar-workers`.
+
+### Solução de problemas
+
+| Sintoma | Causa provável |
+|---|---|
+| Login 500 "column ... does not exist" | faltou `pnpm --filter api migrate` após atualizar |
+| SSE não conecta atrás do proxy | falta `proxy_buffering off` no location `/rt/` |
+| E-mails não chegam | `SMTP_URL` ausente (modo stub: o código sai no log da API) |
+| 429 em rajadas | rate-limit por Redis — ajuste na `plugins/rateLimit.ts` se necessário |
+| Import PDF falha | relatório fora do layout esperado — use CSV/XLSX (cabeçalhos: unidade, nome, vínculo, documento, email, telefone) |
+
+---
+
+## 9. Segurança e LGPD (resumo)
+
+- Auditoria append-only de toda mutação sensível (`registrarAuditoria`).
+- MFA TOTP para síndico/admin; tokens de reset/convite com hash SHA-256 e uso único.
+- SSE autenticado por ticket de uso único (JWT fora de query string/logs).
+- Direitos do titular: export "meus dados" (art. 18), anonimização no
+  desligamento, retenção automática de eventos, consentimento no primeiro acesso.
+- Isolamento multi-tenant testado sob concorrência.

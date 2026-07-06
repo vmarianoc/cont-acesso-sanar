@@ -7,7 +7,7 @@ import BottomNav from '../components/BottomNav'
 
 export default function PainelPage() {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logout, perfil } = useAuth()
   const { data: aguardando } = useQuery({
     queryKey: ['encomendas', 'aguardando'],
     queryFn: () => fetchEncomendas('aguardando'),
@@ -58,6 +58,15 @@ export default function PainelPage() {
           sub="Facial por área, temporárias e manuais"
           onClick={() => navigate('/liberacoes')}
         />
+        {perfil === 'superadmin' && (
+          <Card
+            icon="🌐"
+            iconBg="bg-brand-600"
+            titulo="Minha rede"
+            sub="Todos os condomínios da administradora"
+            onClick={() => navigate('/rede')}
+          />
+        )}
         <Card
           icon="🛰️"
           iconBg="bg-gray-800"

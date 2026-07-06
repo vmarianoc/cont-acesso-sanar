@@ -6,6 +6,7 @@ import CadastrosPage from './pages/CadastrosPage'
 import EncomendasPage from './pages/EncomendasPage'
 import LiberacoesPage from './pages/LiberacoesPage'
 import DispositivosPage from './pages/DispositivosPage'
+import RedePage from './pages/RedePage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!localStorage.getItem('token')) return <Navigate to="/login" replace />
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/encomendas" element={<RequireAuth><EncomendasPage /></RequireAuth>} />
         <Route path="/liberacoes" element={<RequireAuth><LiberacoesPage /></RequireAuth>} />
         <Route path="/dispositivos" element={<RequireAuth><DispositivosPage /></RequireAuth>} />
+        <Route path="/rede" element={<RequireAuth><RedePage /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
