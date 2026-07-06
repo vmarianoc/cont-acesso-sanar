@@ -88,3 +88,21 @@ export const baixarDocumento = (id: string) =>
 
 export const cancelarReserva = (id: string) =>
   client.delete(`/morador/reservas/${id}`).then((r) => r.data.data as Reserva)
+
+export interface ContextoUnidade {
+  unidade_id: string
+  unidade_numero: string
+  bloco: string
+  condominio: string
+  principal: boolean
+}
+
+export interface ContaCondominio {
+  tenant_id: string
+  condominio: string
+}
+
+export const fetchContextos = () => get<ContextoUnidade[]>('/morador/contextos')
+
+export const trocarCondominio = (tenant_id: string) =>
+  client.post('/auth/trocar-condominio', { tenant_id }).then((r) => r.data.data as { token: string; tenant_id: string; condominio: string })

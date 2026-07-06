@@ -12,7 +12,15 @@ interface Contexto {
   condominio: string | null
 }
 
-async function contextoMorador(db: any, userId: string): Promise<Contexto | null> {
+async function contextoMorador(db: any, userId: string, unidadeId?: string): Promise<Contexto | null> {
+  // Morador pode ter vários vínculos ativos (multi-unidade); o header
+  // x-unidade-id escolhe o contexto — validado contra os vínculos do usuário.
+  const params: any[] = [userId]
+  let filtroUnidade = ''
+  if (unidadeId) {
+    params.push(unidadeId)
+    filtroUnidade = 'AND u.id = $2'
+  }
   const rows = await db.unsafe(
     `SELECT p.id AS pessoa_id, p.nome,
             u.id AS unidade_id, u.numero AS unidade_numero,
@@ -23,12 +31,18 @@ async function contextoMorador(db: any, userId: string): Promise<Contexto | null
      LEFT JOIN unidades u ON u.id = v.unidade_id
      LEFT JOIN blocos b ON b.id = u.bloco_id
      LEFT JOIN condominios c ON c.id = b.condominio_id
-     WHERE ut.id = $1
+     WHERE ut.id = $1 ${filtroUnidade}
      ORDER BY v.principal DESC NULLS LAST
      LIMIT 1`,
-    [userId]
+    params
   )
+  if (unidadeId && !rows[0]) return null
   return rows[0] ?? null
+}
+
+const unidadeDoHeader = (request: any): string | undefined => {
+  const h = request.headers['x-unidade-id']
+  return typeof h === 'string' && h.length === 36 ? h : undefined
 }
 
 const CreateReservaBody = z.object({
@@ -44,9 +58,27 @@ const DecidirSolicitacaoBody = z.object({
 const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onRequest', fastify.authenticate)
 
+  // Todos os vínculos ativos do usuário (multi-unidade) para o seletor do app.
+  fastify.get('/morador/contextos', async (request, reply) => {
+    const rows = await request.tenantDb!.unsafe(
+      `SELECT u.id AS unidade_id, u.numero AS unidade_numero, b.nome AS bloco,
+              c.nome AS condominio, v.principal
+       FROM usuarios_tenant ut
+       JOIN pessoas p ON p.id = ut.pessoa_id
+       JOIN vinculos_unidade v ON v.pessoa_id = p.id AND v.ativo = true
+       JOIN unidades u ON u.id = v.unidade_id
+       JOIN blocos b ON b.id = u.bloco_id
+       JOIN condominios c ON c.id = b.condominio_id
+       WHERE ut.id = $1
+       ORDER BY v.principal DESC, u.numero`,
+      [(request.user as any).sub]
+    )
+    return reply.status(200).send({ data: rows })
+  })
+
   fastify.get('/morador/resumo', async (request, reply) => {
     const db = request.tenantDb!
-    const ctx = await contextoMorador(db, (request.user as any).sub)
+    const ctx = await contextoMorador(db, (request.user as any).sub, unidadeDoHeader(request))
     if (!ctx) {
       return reply.status(404).send({
         erro: { codigo: 'SEM_PERFIL', mensagem: 'Usuário não está vinculado a um morador' },
@@ -80,7 +112,7 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/morador/encomendas', async (request, reply) => {
     const db = request.tenantDb!
-    const ctx = await contextoMorador(db, (request.user as any).sub)
+    const ctx = await contextoMorador(db, (request.user as any).sub, unidadeDoHeader(request))
     if (!ctx) return reply.status(200).send({ data: [] })
     const rows = await db.unsafe(
       `SELECT * FROM encomendas WHERE pessoa_id = $1 ORDER BY (status = 'aguardando') DESC, recebida_em DESC`,
@@ -98,7 +130,7 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/morador/reservas', async (request, reply) => {
     const db = request.tenantDb!
-    const ctx = await contextoMorador(db, (request.user as any).sub)
+    const ctx = await contextoMorador(db, (request.user as any).sub, unidadeDoHeader(request))
     if (!ctx) return reply.status(200).send({ data: [] })
     const rows = await db.unsafe(
       `SELECT r.*, e.nome AS espaco_nome
@@ -117,7 +149,7 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
       })
     }
     const db = request.tenantDb!
-    const ctx = await contextoMorador(db, (request.user as any).sub)
+    const ctx = await contextoMorador(db, (request.user as any).sub, unidadeDoHeader(request))
     if (!ctx) {
       return reply.status(404).send({ erro: { codigo: 'SEM_PERFIL', mensagem: 'Sem perfil de morador' } })
     }
@@ -226,7 +258,7 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete('/morador/reservas/:id', async (request, reply) => {
     const { id } = request.params as { id: string }
     const db = request.tenantDb!
-    const ctx = await contextoMorador(db, (request.user as any).sub)
+    const ctx = await contextoMorador(db, (request.user as any).sub, unidadeDoHeader(request))
     if (!ctx) {
       return reply.status(404).send({ erro: { codigo: 'SEM_PERFIL', mensagem: 'Sem perfil de morador' } })
     }
@@ -251,7 +283,7 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/morador/pets', async (request, reply) => {
     const db = request.tenantDb!
-    const ctx = await contextoMorador(db, (request.user as any).sub)
+    const ctx = await contextoMorador(db, (request.user as any).sub, unidadeDoHeader(request))
     if (!ctx) return reply.status(200).send({ data: [] })
     const rows = await db.unsafe(
       `SELECT * FROM pets WHERE pessoa_id = $1 ORDER BY criado_em DESC`,
@@ -273,7 +305,7 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
       })
     }
     const db = request.tenantDb!
-    const ctx = await contextoMorador(db, (request.user as any).sub)
+    const ctx = await contextoMorador(db, (request.user as any).sub, unidadeDoHeader(request))
     if (!ctx) {
       return reply.status(404).send({ erro: { codigo: 'SEM_PERFIL', mensagem: 'Sem perfil de morador' } })
     }
@@ -288,7 +320,7 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete('/morador/pets/:id', async (request, reply) => {
     const { id } = request.params as { id: string }
     const db = request.tenantDb!
-    const ctx = await contextoMorador(db, (request.user as any).sub)
+    const ctx = await contextoMorador(db, (request.user as any).sub, unidadeDoHeader(request))
     if (!ctx) {
       return reply.status(404).send({ erro: { codigo: 'SEM_PERFIL', mensagem: 'Sem perfil de morador' } })
     }
@@ -304,7 +336,7 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/morador/solicitacoes', async (request, reply) => {
     const db = request.tenantDb!
-    const ctx = await contextoMorador(db, (request.user as any).sub)
+    const ctx = await contextoMorador(db, (request.user as any).sub, unidadeDoHeader(request))
     if (!ctx || !ctx.unidade_id) return reply.status(200).send({ data: [] })
     const rows = await db.unsafe(
       `SELECT * FROM solicitacoes_acesso
@@ -323,7 +355,7 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
       })
     }
     const db = request.tenantDb!
-    const ctx = await contextoMorador(db, (request.user as any).sub)
+    const ctx = await contextoMorador(db, (request.user as any).sub, unidadeDoHeader(request))
     if (!ctx || !ctx.unidade_id) {
       return reply.status(404).send({ erro: { codigo: 'SEM_PERFIL', mensagem: 'Sem perfil de morador' } })
     }

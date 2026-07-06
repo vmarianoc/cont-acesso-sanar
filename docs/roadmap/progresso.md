@@ -22,6 +22,13 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | Licenciamento básico (START e PRO) | P0 | ✅ | Licença criada junto do tenant (com `license_key`); limites por plano (START 50 / PRO 500 / ENTERPRISE ∞) aplicados em `POST /unidades` e na importação; `GET /licenca` (plano/limites/uso) e `POST /edge/validate-license` (validação pelo Edge com vínculo de hardware por fingerprint e modo degradado) |
 | Liberação facial por área (temporária, via agendamentos) | P0 | ✅ | `liberacoes_acesso` + `POST /edge/validate-access`: reserva de espaço libera a área do espaço no dia; pré-autorização de visitante libera a portaria na janela; liberação manual com revogação (`/liberacoes`); todo acesso gera evento auditável |
 | App Administração (4ª rota) | P0 | ✅ | `apps/web-admin` (PWA + Capacitor `br.com.condar.admin`, porta 5176): painel, cadastros de pessoas, gestão de encomendas (registrar chegada, código de retirada, baixa) e liberações de acesso por área |
+| Comunicados + Documentos por grupo | P0 | ✅ | Mural com confirmação de leitura (SSE em tempo real) e documentos (convenção p/ todos; restritos a grupos ex. conselho fiscal), tudo auditado |
+| Autosserviço de conta | P0 | ✅ | Esqueci-senha (token 1h, uso único), convite de morador (7 dias, define a própria senha), SMTP por env com stub dev |
+| Ocorrências (livro digital) | P0 | ✅ | Portaria/morador registram; síndico trata com comentários; SSE para síndico/autor |
+| Reservas v2 + presença | P0 | ✅ | Períodos por espaço, aprovação opcional, antecedência/limite mensal, cancelamento revoga liberação; liberação facial restrita à faixa horária; entrada/saída de visitantes + "quem está dentro" |
+| Busca unificada + cadastros vivos | P0 | ✅ | /busca (nome/placa/unidade/documento/pet) na portaria; pets; vaga do veículo; liberação recorrente (prestador); PATCH/timeline de pessoas |
+| LGPD operacional | P0 | ✅ | Export "meus dados" (art. 18), anonimização, retenção automática de eventos (worker diário), consentimento, SSE via ticket de uso único |
+| Multi-unidade e multi-condomínio | P0 | ✅ | /morador/contextos + header x-unidade-id; /auth/contas e /auth/trocar-condominio (mesmo e-mail em vários tenants); seletor no app do morador |
 | Importação via CSV/Excel | P1 | ✅ | `POST /unidades/importar` aceita **PDF, CSV e XLSX** (cabeçalhos flexíveis: unidade, nome, vínculo, documento, email, telefone), com dry-run, idempotência e classificação física/jurídica; validado contra relatório real de 660 unidades (PDF) e fixtures CSV/XLSX |
 | Migração Hikvision | P1 | ⬜ | — |
 | Chat portaria ↔ morador | P1 | ⬜ | — |
