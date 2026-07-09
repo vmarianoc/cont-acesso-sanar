@@ -12,6 +12,9 @@ export default function RealtimeSync() {
     if (ev.tipo === 'comunicado_publicado') {
       qc.invalidateQueries({ queryKey: ['comunicados'] })
     }
+    if (ev.tipo === 'chat_mensagem') {
+      qc.invalidateQueries({ queryKey: ['chat'] })
+    }
     if (ev.tipo === 'encomenda_recebida') {
       qc.invalidateQueries({ queryKey: ['encomendas'] })
       qc.invalidateQueries({ queryKey: ['resumo'] })

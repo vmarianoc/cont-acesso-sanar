@@ -151,6 +151,12 @@ export default function PortariaPage() {
           Cadastrar Visitante
         </button>
         <button
+          onClick={() => navigate('/chat')}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+        >
+          Chat
+        </button>
+        <button
           onClick={() => navigate('/presenca')}
           className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
         >

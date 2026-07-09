@@ -11,6 +11,7 @@ const ACOES = [
   { to: '/encomendas', label: 'Encomendas', icon: '📦' },
   { to: '/avisos', label: 'Avisos', icon: '🔔' },
   { to: '/ocorrencias', label: 'Ocorrências', icon: '📋' },
+  { to: '/chat', label: 'Chat', icon: '💬' },
 ]
 
 export default function HomePage() {

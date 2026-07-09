@@ -7,6 +7,7 @@ import ReservasPage from './pages/ReservasPage'
 import EncomendasPage from './pages/EncomendasPage'
 import AvisosPage from './pages/AvisosPage'
 import OcorrenciasPage from './pages/OcorrenciasPage'
+import ChatPage from './pages/ChatPage'
 import RealtimeSync from './components/RealtimeSync'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/encomendas" element={<RequireAuth><EncomendasPage /></RequireAuth>} />
         <Route path="/avisos" element={<RequireAuth><AvisosPage /></RequireAuth>} />
         <Route path="/ocorrencias" element={<RequireAuth><OcorrenciasPage /></RequireAuth>} />
+        <Route path="/chat" element={<RequireAuth><ChatPage /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

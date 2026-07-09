@@ -60,6 +60,15 @@ export default function PainelPage() {
         />
         {perfil === 'superadmin' && (
           <Card
+            icon="💳"
+            iconBg="bg-gray-800"
+            titulo="Faturas (Banco Cora)"
+            sub="Cobranças por condomínio, ligadas à licença"
+            onClick={() => navigate('/faturas')}
+          />
+        )}
+        {perfil === 'superadmin' && (
+          <Card
             icon="🌐"
             iconBg="bg-brand-600"
             titulo="Minha rede"

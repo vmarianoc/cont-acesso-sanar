@@ -121,6 +121,11 @@ pré-preencher o login. Em dev, os apps proxiam `/api` → `:3000`.
 | `SMTP_FROM` | — | `condar <nao-responda@condar.app>` | remetente |
 | `RETENCAO_EVENTOS_DIAS` | — | `365` | retenção LGPD de eventos de acesso/fotos (worker diário) |
 | `LOG_LEVEL` | — | `info` | pino |
+| `CORA_BASE_URL` | — | *(stub)* | API do Banco Cora (billing); sem as 4 variáveis CORA_* a emissão roda em modo stub |
+| `CORA_CLIENT_ID` | — | — | client_id da integração direta Cora |
+| `CORA_CERT_PATH` / `CORA_KEY_PATH` | — | — | certificado/chave mTLS emitidos pela Cora |
+| `CORA_WEBHOOK_SECRET` | — | — | segredo validado no header `x-webhook-secret` de `POST /webhooks/cora` |
+| `PRECO_START` / `PRECO_PRO` / `PRECO_ENTERPRISE` | — | `19900/49900/99900` | preço mensal por plano, em centavos |
 
 Front-ends (build): `VITE_API_URL` (URL pública da API — **obrigatória em
 produção e nos apps nativos**) e `VITE_TENANT_ID` (opcional, pré-preenche o login).

@@ -32,10 +32,11 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | Painel da administradora (rede) | P0 | ✅ | `/admin/*` (superadmin): resumo consolidado, lista com uso por condomínio, onboarding self-service (tenant+licença+convite do síndico), plano/ativação; tela Minha Rede no web-admin |
 | Importação via CSV/Excel | P1 | ✅ | `POST /unidades/importar` aceita **PDF, CSV e XLSX** (cabeçalhos flexíveis: unidade, nome, vínculo, documento, email, telefone), com dry-run, idempotência e classificação física/jurídica; validado contra relatório real de 660 unidades (PDF) e fixtures CSV/XLSX |
 | Migração Hikvision | P1 | ⬜ | — |
-| Chat portaria ↔ morador | P1 | ⬜ | — |
+| Chat portaria ↔ morador | P1 | ✅ | Conversa por unidade (morador só vê as suas), entrega em tempo real via SSE (~100ms), telas na portaria (lista + thread) e no app do morador |
 | OCR de documentos (RG, CNH) | P1 | ⬜ | — |
 | Central SIP (ramal no app) | P2 | ⬜ | — |
 | Integração Superlógica | P2 | ⬜ | — |
+| Billing (Banco Cora) ligado à licença | P0 | ✅ | Faturas por tenant (`/admin/faturas`): emissão de boleto/Pix na Cora (mTLS; stub sem credenciais), webhook de pagamento e **baixa manual** — pagamento estende a licença em 1 mês; tela Faturas no web-admin |
 
 ## Entregas transversais (além da tabela de escopo)
 
