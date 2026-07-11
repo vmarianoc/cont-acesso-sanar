@@ -3,6 +3,17 @@ import { useQuery } from '@tanstack/react-query'
 import { AppScreen, Header, Card, Logo } from '@condar/ui'
 import { fetchAprovacoes, fetchLicenca } from '../api/sindico'
 import { useAuth } from '../hooks/useAuth'
+import client from '../api/client'
+
+const baixarRelatorio = async (tipo: string) => {
+  const res = await client.get(`/relatorios/${tipo}.csv`, { responseType: 'blob' })
+  const url = URL.createObjectURL(res.data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${tipo}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 import BottomNav from '../components/BottomNav'
 
 export default function GestaoPage() {
@@ -41,6 +52,26 @@ export default function GestaoPage() {
           sub="Toque para revisar"
           onClick={() => navigate('/aprovacoes')}
         />
+        <Card
+          icon="📋"
+          iconBg="bg-gray-800"
+          titulo="Ocorrências"
+          sub="Livro digital da portaria"
+          onClick={() => navigate('/ocorrencias')}
+        />
+        <Card
+          icon="📣"
+          titulo="Comunicados"
+          sub="Publicar avisos com confirmação de leitura"
+          onClick={() => navigate('/comunicados')}
+        />
+        <Card
+          icon="📄"
+          iconBg="bg-gray-800"
+          titulo="Documentos"
+          sub="Convenção, atas e docs por grupo"
+          onClick={() => navigate('/documentos')}
+        />
         {licenca && (
           <Card
             icon="🏢"
@@ -50,6 +81,20 @@ export default function GestaoPage() {
             onClick={() => navigate('/licenca')}
           />
         )}
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <p className="text-sm font-semibold text-gray-900">Relatórios (CSV)</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {(['acessos', 'reservas', 'ocorrencias'] as const).map((tipo) => (
+              <button
+                key={tipo}
+                onClick={() => baixarRelatorio(tipo)}
+                className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200 capitalize"
+              >
+                ⬇ {tipo}
+              </button>
+            ))}
+          </div>
+        </div>
         {licenca && !licenca.ativa && (
           <div className="bg-red-50 border border-red-200 text-red-800 text-sm p-3 rounded-2xl">
             Licença inativa — regularize para manter as funções administrativas.

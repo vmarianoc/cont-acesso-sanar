@@ -6,6 +6,7 @@ import Logo from '../components/Logo'
 import { useAuth } from '../hooks/useAuth'
 import { useDispositivos } from '../hooks/useDispositivos'
 import { useRegistrarEvento } from '../hooks/useRegistrarEvento'
+import BuscaGlobal from '../components/BuscaGlobal'
 
 const CAMERAS = [
   { id: '1', label: 'Entrada Principal' },
@@ -57,11 +58,12 @@ export default function PortariaPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
+    <div className="min-h-screen lg:h-screen flex flex-col bg-gray-100 lg:overflow-hidden">
       {/* Header */}
-      <header className="bg-brand-700 px-4 py-2 flex items-center justify-between flex-shrink-0">
+      <header className="bg-brand-700 px-4 py-2 flex flex-wrap items-center justify-between gap-y-2 flex-shrink-0">
         <Logo subtitle="Portaria" />
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-6">
+          <BuscaGlobal />
           <Clock />
           <StatusBar />
           {podeImportar && (
@@ -88,13 +90,13 @@ export default function PortariaPage() {
       </header>
 
       {/* Main content */}
-      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 gap-4 p-4 lg:overflow-hidden">
         {/* Camera grid */}
-        <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-3">
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-rows-2 gap-3">
           {CAMERAS.map((cam) => (
             <div
               key={cam.id}
-              className="bg-black rounded-lg overflow-hidden relative flex items-center justify-center"
+              className="bg-black rounded-lg overflow-hidden relative flex items-center justify-center min-h-[140px]"
             >
               <div className="text-gray-600 text-sm">Feed de câmera</div>
               <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
@@ -109,7 +111,7 @@ export default function PortariaPage() {
         </div>
 
         {/* Event feed */}
-        <div className="w-80 flex flex-col bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="w-full lg:w-80 h-96 lg:h-auto flex flex-col bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-3 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-800">Eventos Recentes</h2>
           </div>
@@ -120,7 +122,7 @@ export default function PortariaPage() {
       </div>
 
       {/* Action bar */}
-      <footer className="bg-white border-t border-gray-200 px-4 py-2 flex items-center gap-3 flex-shrink-0">
+      <footer className="bg-white border-t border-gray-200 px-4 py-2 flex flex-wrap items-center gap-3 flex-shrink-0">
         <button
           onClick={() => registrarManual('abertura_cancela', 'liberado')}
           disabled={registrar.isPending}
@@ -147,6 +149,30 @@ export default function PortariaPage() {
           className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
         >
           Cadastrar Visitante
+        </button>
+        <button
+          onClick={() => navigate('/chat')}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+        >
+          Chat
+        </button>
+        <button
+          onClick={() => navigate('/presenca')}
+          className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+        >
+          Visitantes
+        </button>
+        <button
+          onClick={() => navigate('/ocorrencia')}
+          className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+        >
+          Registrar Ocorrência
+        </button>
+        <button
+          onClick={() => navigate('/solicitar')}
+          className="bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+        >
+          Chamar Morador
         </button>
         {feedback && <span className="text-sm text-gray-600 ml-2">{feedback}</span>}
       </footer>

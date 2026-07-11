@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">condar Admin</string>
+    <string name="title_activity_main">condar Admin</string>
+    <string name="package_name">br.com.condar.admin</string>
+    <string name="custom_url_scheme">br.com.condar.admin</string>
+</resources>

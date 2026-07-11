@@ -134,7 +134,14 @@ async function run() {
     for (const nome of ['Salão de festas', 'Churrasqueira', 'Salão de jogos']) {
       const eid = uuidv4()
       espacoIds[nome] = eid
-      await reserved.unsafe(`INSERT INTO espacos (id, nome) VALUES ($1, $2)`, [eid, nome])
+      const area = nome.toLowerCase().replace(/\s+/g, '_')
+      await reserved.unsafe(`INSERT INTO espacos (id, nome, area) VALUES ($1, $2, $3)`, [eid, nome, area])
+      // Cada área comum tem seu leitor facial próprio, validado por /edge/validate-access.
+      await reserved.unsafe(
+        `INSERT INTO dispositivos (id, nome, tipo, local, condominio_id, area)
+         VALUES ($1, $2, 'leitor_facial', $3, $4, $5)`,
+        [uuidv4(), `Leitor Facial — ${nome}`, nome, condominioId, area]
+      )
     }
     await reserved.unsafe(
       `INSERT INTO reservas (id, espaco_id, pessoa_id, data, periodo, status)

@@ -42,3 +42,22 @@ ALTER TABLE public.licencas ADD COLUMN IF NOT EXISTS license_key TEXT;
 ALTER TABLE public.licencas ADD COLUMN IF NOT EXISTS edge_fingerprint TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_licencas_license_key
   ON public.licencas(license_key) WHERE license_key IS NOT NULL;
+
+-- Billing: faturas por tenant (emitidas via Banco Cora ou baixa manual).
+CREATE TABLE IF NOT EXISTS faturas (
+  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  tenant_id        UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  competencia      DATE NOT NULL,
+  valor_centavos   INTEGER NOT NULL,
+  status           TEXT NOT NULL DEFAULT 'aberta' CHECK (status IN ('aberta','paga','cancelada')),
+  vencimento       DATE NOT NULL,
+  metodo_pagamento TEXT,
+  cora_invoice_id  TEXT,
+  linha_digitavel  TEXT,
+  pix_copia_cola   TEXT,
+  pago_em          TIMESTAMPTZ,
+  baixa_manual_por UUID,
+  criado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (tenant_id, competencia)
+);
+CREATE INDEX IF NOT EXISTS idx_faturas_status ON faturas(status, vencimento);

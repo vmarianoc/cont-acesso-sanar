@@ -7,6 +7,7 @@ import redisPlugin from './plugins/redis.js'
 import jwtPlugin from './plugins/jwt.js'
 import rateLimitPlugin from './plugins/rateLimit.js'
 import multiTenantPlugin from './plugins/multiTenant.js'
+import realtimePlugin from './plugins/realtime.js'
 
 import authRoutes from './routes/auth.js'
 import tenantsRoutes from './routes/tenants.js'
@@ -21,6 +22,22 @@ import usuariosRoutes from './routes/usuarios.js'
 import condominiosRoutes from './routes/condominios.js'
 import blocosRoutes from './routes/blocos.js'
 import unidadesRoutes from './routes/unidades.js'
+import acessoRoutes from './routes/acesso.js'
+import encomendasRoutes from './routes/encomendas.js'
+import dispositivosRoutes from './routes/dispositivos.js'
+import solicitacoesRoutes from './routes/solicitacoes.js'
+import comunicadosRoutes from './routes/comunicados.js'
+import documentosRoutes from './routes/documentos.js'
+import gruposRoutes from './routes/grupos.js'
+import contaRoutes from './routes/conta.js'
+import ocorrenciasRoutes from './routes/ocorrencias.js'
+import buscaRoutes from './routes/busca.js'
+import lgpdRoutes from './routes/lgpd.js'
+import multiContaRoutes from './routes/multiConta.js'
+import administradoraRoutes from './routes/administradora.js'
+import chatRoutes from './routes/chat.js'
+import faturasRoutes from './routes/faturas.js'
+import pushRoutes from './routes/push.js'
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -49,6 +66,7 @@ export async function buildApp() {
   await fastify.register(jwtPlugin)
   await fastify.register(rateLimitPlugin)
   await fastify.register(multiTenantPlugin)
+  await fastify.register(realtimePlugin)
 
   fastify.get('/health', async () => ({ status: 'ok', ts: new Date().toISOString() }))
 
@@ -65,6 +83,22 @@ export async function buildApp() {
   await fastify.register(condominiosRoutes)
   await fastify.register(blocosRoutes)
   await fastify.register(unidadesRoutes)
+  await fastify.register(acessoRoutes)
+  await fastify.register(encomendasRoutes)
+  await fastify.register(dispositivosRoutes)
+  await fastify.register(solicitacoesRoutes)
+  await fastify.register(comunicadosRoutes)
+  await fastify.register(documentosRoutes)
+  await fastify.register(gruposRoutes)
+  await fastify.register(contaRoutes)
+  await fastify.register(ocorrenciasRoutes)
+  await fastify.register(buscaRoutes)
+  await fastify.register(lgpdRoutes)
+  await fastify.register(multiContaRoutes)
+  await fastify.register(administradoraRoutes)
+  await fastify.register(chatRoutes)
+  await fastify.register(faturasRoutes)
+  await fastify.register(pushRoutes)
 
   fastify.setErrorHandler((error, request, reply) => {
     fastify.log.error({ err: error, requestId: request.id }, 'Unhandled error')

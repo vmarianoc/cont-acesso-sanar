@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TextField, Button } from '@condar/ui'
 import { useAuth } from '../hooks/useAuth'
+import client from '../api/client'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -23,6 +24,14 @@ export default function LoginPage() {
     setError(null)
     try {
       await login(form)
+      localStorage.setItem('tenantId', form.tenant_id)
+      localStorage.removeItem('unidadeId')
+      try {
+        const contas = await client.post('/auth/contas', { email: form.email, senha: form.senha })
+        localStorage.setItem('contas', JSON.stringify(contas.data.data ?? []))
+      } catch {
+        localStorage.setItem('contas', '[]')
+      }
       navigate('/')
     } catch (err: any) {
       setError(err.response?.data?.erro?.mensagem ?? 'Erro ao entrar')
@@ -49,6 +58,13 @@ export default function LoginPage() {
         <Button type="submit" disabled={loading} className="w-full">
           {loading ? 'Entrando...' : 'Entrar'}
         </Button>
+        <button
+          type="button"
+          onClick={() => navigate('/recuperar')}
+          className="w-full text-sm text-gray-500 hover:text-brand-600"
+        >
+          Esqueci minha senha
+        </button>
       </form>
     </div>
   )

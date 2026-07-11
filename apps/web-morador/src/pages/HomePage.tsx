@@ -1,13 +1,17 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AppScreen, Header, Card, Button, iniciais } from '@condar/ui'
+import { AppScreen, Header, Card, Button } from '@condar/ui'
 import { fetchResumo } from '../api/morador'
 import BottomNav from '../components/BottomNav'
+import ContextoSwitcher from '../components/ContextoSwitcher'
 
 const ACOES = [
   { to: '/acesso', label: 'Portaria', icon: '🔑' },
   { to: '/reservas', label: 'Reservas', icon: '📅' },
   { to: '/encomendas', label: 'Encomendas', icon: '📦' },
+  { to: '/avisos', label: 'Avisos', icon: '🔔' },
+  { to: '/ocorrencias', label: 'Ocorrências', icon: '📋' },
+  { to: '/chat', label: 'Chat', icon: '💬' },
 ]
 
 export default function HomePage() {
@@ -23,9 +27,7 @@ export default function HomePage() {
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/15 font-bold">c</span>
             <span className="font-bold text-lg lowercase tracking-tight">condar</span>
           </div>
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-white/15 text-sm font-semibold">
-            {r ? iniciais(r.nome) : '·'}
-          </span>
+          <ContextoSwitcher />
         </div>
         <p className="text-white/80 text-xs tracking-widest mt-4 uppercase">
           {r?.condominio ?? '—'}

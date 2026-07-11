@@ -74,7 +74,7 @@ describe('app do morador (resumo, encomendas, reservas, solicitações)', () => 
       method: 'POST',
       url: '/morador/reservas',
       headers: auth(),
-      payload: { espaco_id: espacoId, data: '2026-08-15', periodo: '19h–22h' },
+      payload: { espaco_id: espacoId, data: '2026-08-15', periodo: 'noite' },
     })
     expect(ok.statusCode).toBe(201)
 
@@ -82,7 +82,7 @@ describe('app do morador (resumo, encomendas, reservas, solicitações)', () => 
       method: 'POST',
       url: '/morador/reservas',
       headers: auth(),
-      payload: { espaco_id: espacoId, data: '2026-08-15' },
+      payload: { espaco_id: espacoId, data: '2026-08-15', periodo: 'noite' },
     })
     expect(conflito.statusCode).toBe(409)
     expect(conflito.json().erro.codigo).toBe('ESPACO_OCUPADO')

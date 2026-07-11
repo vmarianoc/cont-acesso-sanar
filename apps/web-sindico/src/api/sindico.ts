@@ -101,3 +101,57 @@ export const removerOcupante = (unidadeId: string, vinculoId: string) =>
 
 export const fetchPessoas = (busca?: string) =>
   get<PessoaResumo[]>(`/pessoas?limit=100${busca ? `&busca=${encodeURIComponent(busca)}` : ''}`)
+
+export interface Comunicado {
+  id: string
+  titulo: string
+  corpo: string
+  prioridade: 'normal' | 'urgente'
+  criado_em: string
+  leituras: number
+  lido: boolean
+}
+
+export interface Grupo {
+  id: string
+  nome: string
+  descricao: string | null
+  membros: { pessoa_id: string; nome: string }[]
+}
+
+export interface Documento {
+  id: string
+  titulo: string
+  descricao: string | null
+  arquivo_nome: string
+  mime: string
+  tamanho: number
+  escopo: 'todos' | 'grupo'
+  grupo_id: string | null
+  grupo_nome: string | null
+  criado_em: string
+}
+
+export const fetchComunicados = () => get<Comunicado[]>('/comunicados')
+export const publicarComunicado = (payload: { titulo: string; corpo: string; prioridade: string }) =>
+  client.post('/comunicados', payload).then((r) => r.data.data as Comunicado)
+export const removerComunicado = (id: string) =>
+  client.delete(`/comunicados/${id}`).then((r) => r.data.data)
+
+export const fetchGrupos = () => get<Grupo[]>('/grupos')
+export const criarGrupo = (nome: string, descricao?: string) =>
+  client.post('/grupos', { nome, descricao }).then((r) => r.data.data as Grupo)
+export const adicionarMembro = (grupoId: string, pessoa_id: string) =>
+  client.post(`/grupos/${grupoId}/membros`, { pessoa_id }).then((r) => r.data.data)
+export const removerMembro = (grupoId: string, pessoaId: string) =>
+  client.delete(`/grupos/${grupoId}/membros/${pessoaId}`).then((r) => r.data.data)
+
+export const fetchDocumentos = () => get<Documento[]>('/documentos')
+export const publicarDocumento = (form: FormData) =>
+  client.post('/documentos', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+    .then((r) => r.data.data as Documento)
+export const removerDocumento = (id: string) =>
+  client.delete(`/documentos/${id}`).then((r) => r.data.data)
+
+export const gerarConvite = (usuarioId: string) =>
+  client.post(`/usuarios/${usuarioId}/convite`).then((r) => r.data.data as { token: string; expira_em_dias: number })

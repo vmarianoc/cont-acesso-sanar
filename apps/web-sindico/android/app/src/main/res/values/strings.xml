@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">condar Síndico</string>
+    <string name="title_activity_main">condar Síndico</string>
+    <string name="package_name">br.com.condar.sindico</string>
+    <string name="custom_url_scheme">br.com.condar.sindico</string>
+</resources>

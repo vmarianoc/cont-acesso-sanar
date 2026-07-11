@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">condar Portaria</string>
+    <string name="title_activity_main">condar Portaria</string>
+    <string name="package_name">br.com.condar.portaria</string>
+    <string name="custom_url_scheme">br.com.condar.portaria</string>
+</resources>

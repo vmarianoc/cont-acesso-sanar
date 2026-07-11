@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
+import { criarLiberacao } from '../services/acessoService.js'
 
 const UpdatePerfilBody = z.object({
   nome: z.string().min(2).optional(),
@@ -12,6 +13,7 @@ const CreateVeiculoBody = z.object({
   placa: z.string().min(6).max(8),
   modelo: z.string().optional(),
   cor: z.string().optional(),
+  vaga: z.string().optional(),
 })
 
 const PreAutorizarVisitanteBody = z.object({
@@ -103,14 +105,14 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
       })
     }
 
-    const { placa, modelo, cor } = parsed.data
+    const { placa, modelo, cor, vaga } = parsed.data
     const id = uuidv4()
 
     const rows = await request.tenantDb!.unsafe(
-      `INSERT INTO veiculos (id, pessoa_id, placa, modelo, cor)
-       SELECT $1, pessoa_id, $2, $3, $4 FROM usuarios_tenant WHERE id = $5
+      `INSERT INTO veiculos (id, pessoa_id, placa, modelo, cor, vaga)
+       SELECT $1, pessoa_id, $2, $3, $4, $5 FROM usuarios_tenant WHERE id = $6
        RETURNING *`,
-      [id, placa.toUpperCase(), modelo ?? null, cor ?? null, userId]
+      [id, placa.toUpperCase(), modelo ?? null, cor ?? null, vaga ?? null, userId]
     )
 
     await registrarAuditoria(request.tenantDb!, {
@@ -157,6 +159,19 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
        RETURNING *`,
       [id, nome, documento ?? null, unidade_id, valido_de, valido_ate, userId]
     )
+
+    if (rows[0]) {
+      // Pré-autorização gera liberação facial temporária na portaria,
+      // limitada à janela informada pelo morador.
+      await criarLiberacao(request.tenantDb!, {
+        visitante_id: id,
+        area: 'portaria',
+        valido_de,
+        valido_ate,
+        origem_tipo: 'visitante',
+        origem_id: id,
+      })
+    }
 
     return reply.status(201).send({ data: rows[0] })
   })

@@ -1,0 +1,122 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import type { FastifyInstance } from 'fastify'
+import { buildApp } from '../src/app.js'
+import { makeSql, createTestTenant, dropTestTenant, type TestTenant } from './helpers.js'
+
+describe('painel da administradora (superadmin)', () => {
+  let app: FastifyInstance
+  const sql = makeSql()
+  let t: TestTenant
+  let tokenSuper: string
+  let tokenSindico: string
+  let novoTenantId: string
+
+  const auth = (token: string) => ({ authorization: `Bearer ${token}` })
+
+  beforeAll(async () => {
+    t = await createTestTenant(sql, 'admrede')
+    app = await buildApp()
+    await app.ready()
+    // promove o síndico de teste a superadmin num segundo usuário
+    await sql.unsafe(
+      `INSERT INTO ${t.schemaName}.usuarios_tenant (id, email, senha_hash, perfil)
+       SELECT gen_random_uuid(), 'root-' || email, senha_hash, 'superadmin'
+       FROM ${t.schemaName}.usuarios_tenant WHERE email = $1`,
+      [t.sindico.email]
+    ).catch(async () => {
+      await sql.unsafe(
+        `INSERT INTO ${t.schemaName}.usuarios_tenant (id, email, senha_hash, perfil)
+         SELECT uuid_generate_v4(), 'root-' || email, senha_hash, 'superadmin'
+         FROM ${t.schemaName}.usuarios_tenant WHERE email = $1`,
+        [t.sindico.email]
+      )
+    })
+    const login = async (email: string, senha: string) =>
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/auth/login',
+          payload: { email, senha, tenant_id: t.tenantId },
+        })
+      ).json().data.token as string
+    tokenSuper = await login(`root-${t.sindico.email}`, t.sindico.senha)
+    tokenSindico = await login(t.sindico.email, t.sindico.senha)
+  })
+
+  afterAll(async () => {
+    if (novoTenantId) {
+      const schema = `tenant_${novoTenantId.replace(/-/g, '_')}`
+      await sql.unsafe(`DROP SCHEMA IF EXISTS ${schema} CASCADE`)
+      await sql.unsafe(`DELETE FROM licencas WHERE tenant_id = $1`, [novoTenantId])
+      await sql.unsafe(`DELETE FROM tenants WHERE id = $1`, [novoTenantId])
+    }
+    await app.close()
+    await dropTestTenant(sql, t)
+    await sql.end()
+  })
+
+  it('síndico comum não acessa o painel da rede', async () => {
+    const res = await app.inject({ method: 'GET', url: '/admin/resumo', headers: auth(tokenSindico) })
+    expect(res.statusCode).toBe(403)
+  })
+
+  it('resumo e lista consolidada da rede', async () => {
+    const resumo = await app.inject({ method: 'GET', url: '/admin/resumo', headers: auth(tokenSuper) })
+    expect(resumo.statusCode).toBe(200)
+    expect(resumo.json().data.condominios).toBeGreaterThan(0)
+
+    const lista = await app.inject({ method: 'GET', url: '/admin/condominios', headers: auth(tokenSuper) })
+    expect(lista.statusCode).toBe(200)
+    const meu = lista.json().data.find((c: any) => c.id === t.tenantId)
+    expect(meu).toBeTruthy()
+    expect(typeof meu.unidades).toBe('number')
+  })
+
+  it('onboarding: cria condomínio com convite do síndico, que ativa a conta e loga', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/condominios',
+      headers: auth(tokenSuper),
+      payload: {
+        nome: `Cond Onboarding ${Date.now()}`,
+        plano: 'pro',
+        sindico_email: 'novo-sindico@test.com',
+        sindico_nome: 'Sindica Nova',
+      },
+    })
+    expect(res.statusCode).toBe(201)
+    const data = res.json().data
+    novoTenantId = data.tenant_id
+    expect(data.convite_sindico).toBeTruthy()
+
+    const aceitar = await app.inject({
+      method: 'POST',
+      url: '/auth/aceitar-convite',
+      payload: { tenant_id: novoTenantId, token: data.convite_sindico, senha: 'senhaNova1' },
+    })
+    expect(aceitar.statusCode).toBe(200)
+
+    const login = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'novo-sindico@test.com', senha: 'senhaNova1', tenant_id: novoTenantId },
+    })
+    expect(login.statusCode).toBe(200)
+    expect(login.json().data.perfil).toBe('sindico')
+  })
+
+  it('muda plano e desativa condomínio', async () => {
+    const upd = await app.inject({
+      method: 'PATCH',
+      url: `/admin/condominios/${novoTenantId}`,
+      headers: auth(tokenSuper),
+      payload: { plano: 'start', ativo: false },
+    })
+    expect(upd.statusCode).toBe(200)
+    expect(upd.json().data.plano).toBe('start')
+    expect(upd.json().data.ativo).toBe(false)
+
+    const [lic] = await sql.unsafe(`SELECT * FROM licencas WHERE tenant_id = $1`, [novoTenantId])
+    expect(lic.max_unidades).toBe(50)
+  })
+})

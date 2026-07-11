@@ -87,7 +87,14 @@ export default function LoginPage() {
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
-          </form>
+            <button
+          type="button"
+          onClick={() => navigate('/recuperar')}
+          className="w-full text-sm text-gray-500 hover:text-brand-600"
+        >
+          Esqueci minha senha
+        </button>
+      </form>
         </div>
       </div>
     </div>

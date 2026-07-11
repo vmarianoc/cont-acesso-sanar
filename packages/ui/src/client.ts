@@ -9,6 +9,9 @@ const client = axios.create({
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
+  // multi-unidade: contexto escolhido pelo morador no seletor do app
+  const unidadeId = localStorage.getItem('unidadeId')
+  if (unidadeId) config.headers['x-unidade-id'] = unidadeId
   return config
 })
 

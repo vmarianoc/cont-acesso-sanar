@@ -14,13 +14,6 @@ const CreateEventoBody = z.object({
 const eventosRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onRequest', fastify.authenticate)
 
-  fastify.get('/dispositivos', async (request, reply) => {
-    const rows = await request.tenantDb!.unsafe(
-      `SELECT id, nome, tipo, local, ativo FROM dispositivos WHERE ativo = true ORDER BY nome`
-    )
-    return reply.status(200).send({ data: rows })
-  })
-
   fastify.get('/eventos', async (request, reply) => {
     const query = request.query as {
       resultado?: string

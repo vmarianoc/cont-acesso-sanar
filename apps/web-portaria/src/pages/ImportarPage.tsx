@@ -86,7 +86,7 @@ export default function ImportarPage() {
 
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">
-            Importar relatório do condomínio (PDF)
+            Importar relatório do condomínio (PDF, CSV ou Excel)
           </h2>
           <p className="text-sm text-gray-500 mb-4">
             Envie o relatório "Contatos das unidades". A pré-visualização não grava nada — os
@@ -96,7 +96,7 @@ export default function ImportarPage() {
           <div className="flex flex-wrap items-center gap-3">
             <input
               type="file"
-              accept="application/pdf"
+              accept=".pdf,.csv,.xlsx,application/pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               onChange={onFile}
               disabled={!permitido}
               className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-brand-700 file:text-sm"
@@ -106,7 +106,7 @@ export default function ImportarPage() {
               disabled={!file || !permitido || loading !== null}
               className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
             >
-              {loading === 'preview' ? 'Lendo PDF...' : 'Pré-visualizar'}
+              {loading === 'preview' ? 'Lendo arquivo...' : 'Pré-visualizar'}
             </button>
           </div>
 

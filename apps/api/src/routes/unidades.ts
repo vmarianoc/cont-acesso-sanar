@@ -7,6 +7,7 @@ import {
   mapRelatorioParaPlano,
   aplicarImportacao,
 } from '../services/pdfImportService.js'
+import { parseTabela, isTabular } from '../services/tabelaImportService.js'
 import {
   getLicencaEfetiva,
   contarUnidades,
@@ -69,7 +70,7 @@ const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
     const file = await (request as any).file()
     if (!file) {
       return reply.status(400).send({
-        erro: { codigo: 'ARQUIVO_FALTANDO', mensagem: 'Envie o PDF no campo "file"' },
+        erro: { codigo: 'ARQUIVO_FALTANDO', mensagem: 'Envie o arquivo (PDF, CSV ou XLSX) no campo "file"' },
       })
     }
     const buffer = await file.toBuffer()
@@ -79,11 +80,16 @@ const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
 
     let relatorio
     try {
-      relatorio = await parsePdf(buffer)
+      relatorio = isTabular(file.filename ?? '', file.mimetype)
+        ? parseTabela(buffer, file.filename ?? '')
+        : await parsePdf(buffer)
     } catch (err) {
-      request.log.error({ err }, 'falha ao parsear PDF de importação')
+      request.log.error({ err }, 'falha ao parsear arquivo de importação')
       return reply.status(422).send({
-        erro: { codigo: 'PDF_INVALIDO', mensagem: 'Não foi possível ler o PDF enviado' },
+        erro: {
+          codigo: 'ARQUIVO_INVALIDO',
+          mensagem: `Não foi possível ler o arquivo enviado${err instanceof Error && isTabular(file.filename ?? '', file.mimetype) ? `: ${err.message}` : ''}`,
+        },
       })
     }
 

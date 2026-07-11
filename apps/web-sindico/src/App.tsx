@@ -1,14 +1,19 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { PushRegistrar } from '@condar/ui'
 import LoginPage from './pages/LoginPage'
+import RecuperarPage from './pages/RecuperarPage'
 import GestaoPage from './pages/GestaoPage'
 import AprovacoesPage from './pages/AprovacoesPage'
 import LicencaPage from './pages/LicencaPage'
 import UsuariosPage from './pages/UsuariosPage'
 import UnidadesPage from './pages/UnidadesPage'
+import ComunicadosPage from './pages/ComunicadosPage'
+import DocumentosPage from './pages/DocumentosPage'
+import OcorrenciasPage from './pages/OcorrenciasPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!localStorage.getItem('token')) return <Navigate to="/login" replace />
-  return <>{children}</>
+  return <><PushRegistrar />{children}</>
 }
 
 export default function App() {
@@ -16,9 +21,14 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/recuperar" element={<RecuperarPage />} />
+        <Route path="/convite" element={<RecuperarPage convite />} />
         <Route path="/" element={<RequireAuth><GestaoPage /></RequireAuth>} />
         <Route path="/aprovacoes" element={<RequireAuth><AprovacoesPage /></RequireAuth>} />
         <Route path="/unidades" element={<RequireAuth><UnidadesPage /></RequireAuth>} />
+        <Route path="/comunicados" element={<RequireAuth><ComunicadosPage /></RequireAuth>} />
+        <Route path="/documentos" element={<RequireAuth><DocumentosPage /></RequireAuth>} />
+        <Route path="/ocorrencias" element={<RequireAuth><OcorrenciasPage /></RequireAuth>} />
         <Route path="/licenca" element={<RequireAuth><LicencaPage /></RequireAuth>} />
         <Route path="/usuarios" element={<RequireAuth><UsuariosPage /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />
