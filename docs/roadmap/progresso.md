@@ -17,7 +17,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | App Morador (iOS + Android) | P0 | 🟡 | App do morador **condar** (PWA mobile, `apps/web-morador`) com home, autorizar visitante, reservas e encomendas — funcional sobre a Cloud API. Falta empacotar como app nativo (React Native) |
 | Atualização cadastral com aprovação | P0 | ✅ | Fluxo de aprovações (`/aprovacoes`) com histórico, comando ao Edge e auditoria |
 | App Síndico — central de aprovações | P0 | 🟡 | App do síndico **condar** (PWA, `apps/web-sindico`) com painel de gestão, central de aprovações (aprovar/reprovar) e visão de licença/uso. Falta empacotar nativo |
-| Cloud API — auth, sync, push | P0 | ✅ | JWT+refresh, `/edge/sync/*`; push via BullMQ (stub FCM/APNs) |
+| Cloud API — auth, sync, push | P0 | ✅ | JWT+refresh, `/edge/sync/*`; **push real via FCM HTTP v1** (Web Push nos 4 PWAs: tokens por pessoa em `push_tokens`, worker envia e remove expirados; stub sem `FCM_SERVICE_ACCOUNT_PATH`) |
 | Multi-tenant (schema per tenant) | P0 | ✅ | Conexão reservada por requisição + `search_path` isolado; teste de isolamento sob concorrência |
 | Licenciamento básico (START e PRO) | P0 | ✅ | Licença criada junto do tenant (com `license_key`); limites por plano (START 50 / PRO 500 / ENTERPRISE ∞) aplicados em `POST /unidades` e na importação; `GET /licenca` (plano/limites/uso) e `POST /edge/validate-license` (validação pelo Edge com vínculo de hardware por fingerprint e modo degradado) |
 | Liberação facial por área (temporária, via agendamentos) | P0 | ✅ | `liberacoes_acesso` + `POST /edge/validate-access`: reserva de espaço libera a área do espaço no dia; pré-autorização de visitante libera a portaria na janela; liberação manual com revogação (`/liberacoes`); todo acesso gera evento auditável |
@@ -56,7 +56,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 3. ~~UI web de administração de unidades/ocupantes~~ ✅ (`/unidades` no app do síndico: busca por número, listagem condomínio/bloco/unidade, vincular/desvincular ocupante). Falta UI para criar condomínio/bloco (hoje só via API).
 4. ~~Enforcement de licença~~ ✅ (limites de unidades por plano + `/edge/validate-license`).
 5. ~~Apps nativos (portaria/morador/síndico)~~ ✅ via Capacitor reaproveitando os apps web + `@condar/ui` (ver `docs/apps-nativos.md`); resta assinar/publicar nas lojas e `cap add ios` (requer macOS).
-6. Provider real de push (FCM/APNs) no worker de notificações.
+6. ~~Provider real de push (FCM)~~ ✅ Web Push via FCM HTTP v1 nos 4 apps (`/push/token` + worker); push nativo Android/iOS fica para o empacotamento das lojas (registrar os pacotes `br.com.condar.*` no Firebase).
 7. ~~Liberação facial por área via agendamentos~~ ✅ (`/edge/validate-access` + liberações automáticas de reservas/visitantes; UI em `web-admin`).
 8. ~~App de administração do condomínio~~ ✅ (`apps/web-admin`: cadastros, encomendas com código de retirada, liberações).
 9. ~~Telas de áreas/dispositivos~~ ✅ (`/dispositivos` + tela no web-admin: criar leitor por área, ativar/desativar). Falta a integração do Edge real com `/edge/validate-access` (matching facial no hardware → pessoa_id).

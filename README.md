@@ -119,6 +119,8 @@ pré-preencher o login. Em dev, os apps proxiam `/api` → `:3000`.
 | `PORT` / `HOST` | — | `3000` / `0.0.0.0` | bind da API |
 | `NODE_ENV` | — | `development` | `production` oculta mensagens de erro internas |
 | `SMTP_URL` | — | *(stub)* | ex. `smtps://user:pass@smtp.provedor.com:465`; ausente → códigos saem no log |
+| `FCM_SERVICE_ACCOUNT_PATH` | — | *(stub)* | caminho do JSON da conta de serviço do Firebase (push real via FCM HTTP v1); sem ele o worker loga em stub |
+| `VITE_FIREBASE_VAPID_KEY` | — | embutida | chave pública VAPID (Certificados push da Web) usada pelos fronts no `getToken` |
 | `SMTP_FROM` | — | `condar <nao-responda@condar.app>` | remetente |
 | `RETENCAO_EVENTOS_DIAS` | — | `365` | retenção LGPD de eventos de acesso/fotos (worker diário) |
 | `LOG_LEVEL` | — | `info` | pino |

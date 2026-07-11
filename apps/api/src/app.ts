@@ -37,6 +37,7 @@ import multiContaRoutes from './routes/multiConta.js'
 import administradoraRoutes from './routes/administradora.js'
 import chatRoutes from './routes/chat.js'
 import faturasRoutes from './routes/faturas.js'
+import pushRoutes from './routes/push.js'
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -97,6 +98,7 @@ export async function buildApp() {
   await fastify.register(administradoraRoutes)
   await fastify.register(chatRoutes)
   await fastify.register(faturasRoutes)
+  await fastify.register(pushRoutes)
 
   fastify.setErrorHandler((error, request, reply) => {
     fastify.log.error({ err: error, requestId: request.id }, 'Unhandled error')

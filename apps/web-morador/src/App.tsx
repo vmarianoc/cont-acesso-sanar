@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { PushRegistrar } from '@condar/ui'
 import LoginPage from './pages/LoginPage'
 import RecuperarPage from './pages/RecuperarPage'
 import HomePage from './pages/HomePage'
@@ -15,6 +16,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return (
     <>
       <RealtimeSync />
+      <PushRegistrar />
       {children}
     </>
   )

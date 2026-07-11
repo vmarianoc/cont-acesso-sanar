@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { PushRegistrar } from '@condar/ui'
 import LoginPage from './pages/LoginPage'
 import RecuperarPage from './pages/RecuperarPage'
 import PainelPage from './pages/PainelPage'
@@ -11,7 +12,7 @@ import FaturasPage from './pages/FaturasPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!localStorage.getItem('token')) return <Navigate to="/login" replace />
-  return <>{children}</>
+  return <><PushRegistrar />{children}</>
 }
 
 export default function App() {
