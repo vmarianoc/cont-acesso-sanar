@@ -109,7 +109,7 @@ const acessoRoutes: FastifyPluginAsync = async (fastify) => {
   }
 
   fastify.get('/liberacoes', async (request, reply) => {
-    if (!exigirGestao(request, reply)) return
+    if (!exigirGestao(request, reply)) return reply
     const query = request.query as { area?: string; vigentes?: string }
     const conds: string[] = ['l.ativo = true']
     const params: any[] = []
@@ -133,7 +133,7 @@ const acessoRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   fastify.post('/liberacoes', async (request, reply) => {
-    if (!exigirGestao(request, reply)) return
+    if (!exigirGestao(request, reply)) return reply
     const parsed = CreateLiberacaoBody.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({
@@ -158,7 +158,7 @@ const acessoRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   fastify.delete('/liberacoes/:id', async (request, reply) => {
-    if (!exigirGestao(request, reply)) return
+    if (!exigirGestao(request, reply)) return reply
     const { id } = request.params as { id: string }
     const userId = (request.user as any).sub as string
     const rows = await request.tenantDb!.unsafe(

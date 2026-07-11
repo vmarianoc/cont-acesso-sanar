@@ -37,17 +37,10 @@ const faturasRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.db.unsafe(
       `UPDATE licencas
        SET validade = GREATEST(COALESCE(validade, NOW()), NOW()) + INTERVAL '1 month',
-           ativo = true
+           ativa = true
        WHERE tenant_id = $1`,
       [fatura.tenant_id]
-    ).catch(async () => {
-      await fastify.db.unsafe(
-        `UPDATE licencas
-         SET validade = GREATEST(COALESCE(validade, NOW()), NOW()) + INTERVAL '1 month'
-         WHERE tenant_id = $1`,
-        [fatura.tenant_id]
-      )
-    })
+    )
     return fatura
   }
 

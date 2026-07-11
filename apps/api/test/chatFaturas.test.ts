@@ -170,6 +170,14 @@ describe('chat portaria↔morador + billing Cora', () => {
     expect(baixa.json().data.metodo_pagamento).toBe('manual')
     expect(baixa.json().data.baixa_manual_por).toBeTruthy()
 
+    // pagamento reativa a licença e estende a validade
+    const [lic] = await sql.unsafe(
+      `SELECT ativa, validade FROM public.licencas WHERE tenant_id = $1`,
+      [t.tenantId]
+    )
+    expect(lic.ativa).toBe(true)
+    expect(new Date(lic.validade).getTime()).toBeGreaterThan(Date.now())
+
     const dupla = await app.inject({
       method: 'POST',
       url: `/admin/faturas/${f2.id}/baixa-manual`,
