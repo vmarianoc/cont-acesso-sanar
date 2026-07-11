@@ -29,6 +29,13 @@ export default function LicencaPage() {
       <div className="px-5 mt-4 space-y-4">
         {l && (
           <>
+            {(l as any).codigo_condominio && (
+              <div className="bg-white rounded-2xl p-4 shadow-sm">
+                <p className="text-xs tracking-widest uppercase text-gray-400">Código do condomínio</p>
+                <p className="text-2xl font-mono font-bold text-gray-900">{(l as any).codigo_condominio}</p>
+                <p className="text-xs text-gray-500 mt-1">Use este código no login do computador da portaria.</p>
+              </div>
+            )}
             <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
               <span className="font-medium text-gray-800">Status</span>
               <Badge tone={l.ativa && !l.expirada ? 'green' : 'red'}>

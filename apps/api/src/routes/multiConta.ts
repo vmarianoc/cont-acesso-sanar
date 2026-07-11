@@ -3,10 +3,13 @@ import { z } from 'zod'
 import { login } from '../services/authService.js'
 import { registrarAuditoria } from '../services/auditoriaService.js'
 
-const ContasBody = z.object({
-  email: z.string().email(),
-  senha: z.string().min(6),
-})
+const ContasBody = z
+  .object({
+    identificador: z.string().min(3).optional(),
+    email: z.string().email().optional(),
+    senha: z.string().min(6),
+  })
+  .refine((b) => b.identificador || b.email, { message: 'Informe e-mail ou CPF' })
 
 const TrocarBody = z.object({
   tenant_id: z.string().uuid(),
@@ -27,7 +30,8 @@ const multiContaRoutes: FastifyPluginAsync = async (fastify) => {
         erro: { codigo: 'DADOS_INVALIDOS', mensagem: parsed.error.errors[0].message },
       })
     }
-    const { email, senha } = parsed.data
+    const email = (parsed.data.identificador ?? parsed.data.email)!.trim()
+    const { senha } = parsed.data
 
     const tenants = await fastify.db.unsafe(
       `SELECT id, nome FROM tenants WHERE ativo = true ORDER BY nome`

@@ -20,6 +20,8 @@ export function useAuth() {
     const data = await apiLogin(payload)
     localStorage.setItem('token', data.token)
     localStorage.setItem('perfil', data.perfil)
+    if (data.tenant_id) localStorage.setItem('tenantId', data.tenant_id)
+    if (data.condominio) localStorage.setItem('condominio', data.condominio)
     setAuth({ token: data.token, perfil: data.perfil })
   }, [])
 

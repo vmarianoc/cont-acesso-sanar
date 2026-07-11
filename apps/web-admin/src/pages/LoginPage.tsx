@@ -1,17 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { TextField, Button } from '@condar/ui'
+import { TextField, Button, ContasMultiplasError } from '@condar/ui'
 import { useAuth } from '../hooks/useAuth'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
-  const [form, setForm] = useState({
-    email: '',
-    senha: '',
-    tenant_id: import.meta.env.VITE_TENANT_ID ?? '',
-    mfa_code: '',
-  })
+  const [form, setForm] = useState({ identificador: '', senha: '', mfa_code: '' })
+  const [contas, setContas] = useState<{ tenant_id: string; condominio: string }[] | null>(null)
+  const [tenantEscolhido, setTenantEscolhido] = useState<string | undefined>()
   const [precisaMfa, setPrecisaMfa] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -19,19 +16,22 @@ export default function LoginPage() {
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }))
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const entrar = async (tenantId?: string) => {
     setLoading(true)
     setError(null)
     try {
       await login({
-        email: form.email,
+        identificador: form.identificador,
         senha: form.senha,
-        tenant_id: form.tenant_id,
+        tenant_id: tenantId ?? tenantEscolhido,
         ...(form.mfa_code ? { mfa_code: form.mfa_code } : {}),
-      } as any)
+      })
       navigate('/')
     } catch (err: any) {
+      if (err instanceof ContasMultiplasError) {
+        setContas(err.contas)
+        return
+      }
       const codigo = err.response?.data?.erro?.codigo
       if (codigo === 'MFA_REQUERIDO') {
         setPrecisaMfa(true)
@@ -42,6 +42,17 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const escolherConta = async (tenantId: string) => {
+    setTenantEscolhido(tenantId)
+    setContas(null)
+    await entrar(tenantId)
+  }
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await entrar()
   }
 
   return (
@@ -55,9 +66,19 @@ export default function LoginPage() {
       </div>
 
       <form onSubmit={onSubmit} className="bg-white rounded-3xl p-6 shadow-xl space-y-4">
-        <TextField label="E-mail" name="email" type="email" value={form.email} onChange={onChange} required />
+        <TextField label="E-mail ou CPF" name="identificador" value={form.identificador} onChange={onChange} required />
         <TextField label="Senha" name="senha" type="password" value={form.senha} onChange={onChange} required />
-        <TextField label="ID do condomínio" name="tenant_id" value={form.tenant_id} onChange={onChange} mono required />
+        {contas && (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600">Escolha o condomínio:</p>
+            {contas.map((c) => (
+              <button key={c.tenant_id} type="button" onClick={() => escolherConta(c.tenant_id)}
+                className="w-full text-left bg-gray-50 hover:bg-brand-50 rounded-xl px-4 py-3 text-sm font-semibold text-gray-800">
+                🏢 {c.condominio}
+              </button>
+            ))}
+          </div>
+        )}
         {precisaMfa && (
           <TextField label="Código MFA" name="mfa_code" value={form.mfa_code} onChange={onChange} mono />
         )}

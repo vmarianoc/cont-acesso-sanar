@@ -72,7 +72,7 @@ const administradoraRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/admin/condominios', async (_request, reply) => {
     const tenants = await fastify.db.unsafe(
-      `SELECT t.id, t.nome, t.schema_name, t.plano, t.ativo, t.criado_em,
+      `SELECT t.id, t.nome, t.codigo, t.schema_name, t.plano, t.ativo, t.criado_em,
               l.validade, l.max_unidades
        FROM tenants t LEFT JOIN licencas l ON l.tenant_id = t.id
        ORDER BY t.nome`

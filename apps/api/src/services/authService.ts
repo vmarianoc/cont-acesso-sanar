@@ -29,7 +29,7 @@ interface TenantUser {
 
 export async function login(
   sql: postgres.Sql,
-  email: string,
+  identificador: string, // e-mail ou CPF (somente dígitos ou com máscara)
   senha: string,
   tenantId: string,
   mfaCode?: string
@@ -46,11 +46,22 @@ export async function login(
   let user: TenantUser | undefined
   try {
     await reserved.unsafe(`SET search_path TO ${schemaName}, public`)
-    const users = await reserved.unsafe<TenantUser[]>(
-      `SELECT id, senha_hash, perfil, ativo, mfa_secret, mfa_ativo
-       FROM usuarios_tenant WHERE email = $1 LIMIT 1`,
-      [email]
-    )
+    const porEmail = identificador.includes('@')
+    const users = porEmail
+      ? await reserved.unsafe<TenantUser[]>(
+          `SELECT id, senha_hash, perfil, ativo, mfa_secret, mfa_ativo
+           FROM usuarios_tenant WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+          [identificador]
+        )
+      : await reserved.unsafe<TenantUser[]>(
+          `SELECT u.id, u.senha_hash, u.perfil, u.ativo, u.mfa_secret, u.mfa_ativo
+           FROM usuarios_tenant u
+           JOIN pessoas p ON p.id = u.pessoa_id
+           WHERE REGEXP_REPLACE(COALESCE(p.cpf, ''), '[^0-9]', '', 'g') = REGEXP_REPLACE($1, '[^0-9]', '', 'g')
+             AND COALESCE(p.cpf, '') <> ''
+           LIMIT 1`,
+          [identificador]
+        )
     user = users[0]
   } finally {
     try {

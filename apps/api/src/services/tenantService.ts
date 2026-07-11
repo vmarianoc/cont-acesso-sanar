@@ -35,9 +35,11 @@ export async function createTenant(
   const limites = LIMITES_PLANO[planoNorm]
 
   await sql.begin(async (tx) => {
+    // Código curto e único: é o que a portaria digita no login
+    const codigo = id.replace(/-/g, '').slice(0, 6).toUpperCase()
     await tx`
-      INSERT INTO public.tenants (id, nome, schema_name, plano)
-      VALUES (${id}, ${nome}, ${schemaName}, ${plano})
+      INSERT INTO public.tenants (id, nome, schema_name, plano, codigo)
+      VALUES (${id}, ${nome}, ${schemaName}, ${plano}, ${codigo})
     `
 
     const validade = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)

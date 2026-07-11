@@ -61,3 +61,10 @@ CREATE TABLE IF NOT EXISTS faturas (
   UNIQUE (tenant_id, competencia)
 );
 CREATE INDEX IF NOT EXISTS idx_faturas_status ON faturas(status, vencimento);
+
+-- Código curto do condomínio (login da portaria digita isso, não UUID)
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS codigo TEXT;
+UPDATE public.tenants
+   SET codigo = UPPER(SUBSTRING(REPLACE(id::text, '-', '') FROM 1 FOR 6))
+ WHERE codigo IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tenants_codigo ON public.tenants (UPPER(codigo));

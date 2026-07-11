@@ -5,10 +5,12 @@ import { useAuth } from '../hooks/useAuth'
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
+  // Porteiros nem sempre têm e-mail: entram com CPF + código do condomínio
+  // (o código fica salvo no computador da guarita após o primeiro login).
   const [form, setForm] = useState({
-    email: '',
+    identificador: '',
     senha: '',
-    tenant_id: import.meta.env.VITE_TENANT_ID ?? '',
+    codigo_condominio: localStorage.getItem('codigoCondominio') ?? '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -22,7 +24,12 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     try {
-      await login(form)
+      await login({
+        identificador: form.identificador,
+        senha: form.senha,
+        codigo_condominio: form.codigo_condominio.trim().toUpperCase(),
+      })
+      localStorage.setItem('codigoCondominio', form.codigo_condominio.trim().toUpperCase())
       navigate('/portaria')
     } catch (err: any) {
       setError(err.response?.data?.erro?.mensagem ?? 'Erro ao fazer login')
@@ -45,14 +52,13 @@ export default function LoginPage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Entrar na Portaria</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">E-mail</label>
+              <label className="block text-sm font-medium text-gray-700">CPF (ou e-mail do administrador)</label>
               <input
-                type="email"
-                name="email"
-                value={form.email}
+                name="identificador"
+                value={form.identificador}
                 onChange={handleChange}
                 required
-                autoComplete="email"
+                placeholder="000.000.000-00"
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
@@ -69,14 +75,15 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">ID do Condomínio</label>
+              <label className="block text-sm font-medium text-gray-700">Código do condomínio</label>
               <input
-                name="tenant_id"
-                value={form.tenant_id}
+                name="codigo_condominio"
+                value={form.codigo_condominio}
                 onChange={handleChange}
                 required
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                placeholder="Ex.: A1B2C3"
+                maxLength={12}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono uppercase focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
             {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</p>}

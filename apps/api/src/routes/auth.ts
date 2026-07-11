@@ -3,12 +3,16 @@ import { z } from 'zod'
 import { authenticator } from 'otplib'
 import { login, refresh } from '../services/authService.js'
 
-const LoginBody = z.object({
-  email: z.string().email(),
-  senha: z.string().min(6),
-  tenant_id: z.string().uuid(),
-  mfa_code: z.string().optional(),
-})
+const LoginBody = z
+  .object({
+    identificador: z.string().min(3).optional(), // e-mail ou CPF
+    email: z.string().email().optional(), // compat
+    senha: z.string().min(6),
+    tenant_id: z.string().uuid().optional(),
+    codigo_condominio: z.string().min(4).max(12).optional(), // login da portaria
+    mfa_code: z.string().optional(),
+  })
+  .refine((b) => b.identificador || b.email, { message: 'Informe e-mail ou CPF' })
 
 const EnableMfaBody = z.object({
   codigo: z.string().min(6),
@@ -23,8 +27,51 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       })
     }
 
-    const { email, senha, tenant_id, mfa_code } = parsed.data
-    const result = await login(fastify.db, email, senha, tenant_id, mfa_code)
+    const { senha, mfa_code, codigo_condominio } = parsed.data
+    const identificador = (parsed.data.identificador ?? parsed.data.email)!.trim()
+    let tenant_id = parsed.data.tenant_id
+
+    // Portaria entra com o código curto do condomínio (não com UUID)
+    if (!tenant_id && codigo_condominio) {
+      const [t] = await fastify.db.unsafe(
+        `SELECT id FROM public.tenants WHERE UPPER(codigo) = UPPER($1) AND ativo = true`,
+        [codigo_condominio.trim()]
+      )
+      if (!t) {
+        return reply.status(401).send({
+          erro: { codigo: 'CONDOMINIO_INVALIDO', mensagem: 'Código de condomínio não encontrado' },
+        })
+      }
+      tenant_id = t.id
+    }
+
+    // Morador/síndico não digitam condomínio: descobrimos pela credencial.
+    if (!tenant_id) {
+      const tenants = await fastify.db.unsafe(
+        `SELECT id, nome FROM public.tenants WHERE ativo = true ORDER BY nome`
+      )
+      const contas: { tenant_id: string; condominio: string }[] = []
+      for (const t of tenants as any[]) {
+        const r = await login(fastify.db, identificador, senha, t.id)
+        if (r.ok || (!r.ok && r.code === 'MFA_REQUERIDO')) {
+          contas.push({ tenant_id: t.id, condominio: t.nome })
+        }
+      }
+      if (contas.length === 0) {
+        return reply.status(401).send({
+          erro: { codigo: 'CREDENCIAIS_INVALIDAS', mensagem: 'E-mail/CPF ou senha inválidos' },
+        })
+      }
+      if (contas.length > 1) {
+        return reply.status(409).send({
+          erro: { codigo: 'CONTAS_MULTIPLAS', mensagem: 'Escolha o condomínio' },
+          data: { contas },
+        })
+      }
+      tenant_id = contas[0].tenant_id
+    }
+
+    const result = await login(fastify.db, identificador, senha, tenant_id, mfa_code)
 
     if (!result.ok) {
       if (result.code === 'MFA_REQUERIDO') {
@@ -38,7 +85,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
       return reply.status(401).send({
-        erro: { codigo: 'CREDENCIAIS_INVALIDAS', mensagem: 'Email, senha ou tenant inválidos' },
+        erro: { codigo: 'CREDENCIAIS_INVALIDAS', mensagem: 'E-mail/CPF, senha ou condomínio inválidos' },
       })
     }
 
@@ -57,7 +104,19 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       maxAge: 60 * 60 * 24 * 7,
     })
 
-    return reply.status(200).send({ data: { token, perfil: payload.perfil } })
+    const [tenantInfo] = await fastify.db.unsafe(
+      `SELECT nome, codigo FROM public.tenants WHERE id = $1`,
+      [tenant_id]
+    )
+    return reply.status(200).send({
+      data: {
+        token,
+        perfil: payload.perfil,
+        tenant_id,
+        condominio: tenantInfo?.nome ?? null,
+        codigo_condominio: tenantInfo?.codigo ?? null,
+      },
+    })
   })
 
   fastify.post('/auth/refresh', async (request, reply) => {

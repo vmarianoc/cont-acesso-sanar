@@ -45,8 +45,14 @@ const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
     const licenca = await getLicencaEfetiva(fastify.db, user.tenant_id)
     const unidades = await contarUnidades(request.tenantDb!)
     const dispositivos = await contarDispositivos(request.tenantDb!)
+    const [tenant] = await fastify.db.unsafe(
+      `SELECT nome, codigo FROM public.tenants WHERE id = $1`,
+      [user.tenant_id]
+    )
     return reply.status(200).send({
       data: {
+        condominio: tenant?.nome ?? null,
+        codigo_condominio: tenant?.codigo ?? null,
         plano: licenca.plano,
         ativa: licenca.ativa,
         validade: licenca.validade,

@@ -1,43 +1,47 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { TextField, Button } from '@condar/ui'
+import { TextField, Button, ContasMultiplasError } from '@condar/ui'
 import { useAuth } from '../hooks/useAuth'
 import client from '../api/client'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
-  const [form, setForm] = useState({
-    email: '',
-    senha: '',
-    tenant_id: import.meta.env.VITE_TENANT_ID ?? '',
-  })
+  const [form, setForm] = useState({ identificador: '', senha: '' })
+  const [contas, setContas] = useState<{ tenant_id: string; condominio: string }[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }))
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const entrar = async (tenantId?: string) => {
     setLoading(true)
     setError(null)
     try {
-      await login(form)
-      localStorage.setItem('tenantId', form.tenant_id)
+      await login({ identificador: form.identificador, senha: form.senha, tenant_id: tenantId })
       localStorage.removeItem('unidadeId')
       try {
-        const contas = await client.post('/auth/contas', { email: form.email, senha: form.senha })
-        localStorage.setItem('contas', JSON.stringify(contas.data.data ?? []))
+        const r = await client.post('/auth/contas', { identificador: form.identificador, senha: form.senha })
+        localStorage.setItem('contas', JSON.stringify(r.data.data ?? []))
       } catch {
         localStorage.setItem('contas', '[]')
       }
       navigate('/')
     } catch (err: any) {
-      setError(err.response?.data?.erro?.mensagem ?? 'Erro ao entrar')
+      if (err instanceof ContasMultiplasError) {
+        setContas(err.contas) // usuário mora em mais de um condomínio: escolher
+      } else {
+        setError(err.response?.data?.erro?.mensagem ?? 'Erro ao entrar')
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await entrar()
   }
 
   return (
@@ -51,9 +55,23 @@ export default function LoginPage() {
       </div>
 
       <form onSubmit={onSubmit} className="bg-white rounded-3xl p-6 shadow-xl space-y-4">
-        <TextField label="E-mail" name="email" type="email" value={form.email} onChange={onChange} required />
+        <TextField label="E-mail ou CPF" name="identificador" value={form.identificador} onChange={onChange} required />
         <TextField label="Senha" name="senha" type="password" value={form.senha} onChange={onChange} required />
-        <TextField label="ID do condomínio" name="tenant_id" value={form.tenant_id} onChange={onChange} mono required />
+        {contas && (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600">Você tem conta em mais de um condomínio — escolha:</p>
+            {contas.map((c) => (
+              <button
+                key={c.tenant_id}
+                type="button"
+                onClick={() => entrar(c.tenant_id)}
+                className="w-full text-left bg-gray-50 hover:bg-brand-50 rounded-xl px-4 py-3 text-sm font-semibold text-gray-800"
+              >
+                🏢 {c.condominio}
+              </button>
+            ))}
+          </div>
+        )}
         {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
         <Button type="submit" disabled={loading} className="w-full">
           {loading ? 'Entrando...' : 'Entrar'}
