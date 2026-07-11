@@ -26,7 +26,8 @@ inclui o [progresso da implementação](docs/roadmap/progresso.md) e o guia de
                                         │          validate-access)
                         ┌───────────────┴────────────┐
                         │  Edge Service (guarita)     │  ← fora deste repo
-                        │  leitores faciais Hikvision │
+                        │  hardware Intelbras (facial │
+                        │  + câmeras LPR)             │
                         └─────────────────────────────┘
 ```
 
@@ -263,12 +264,16 @@ Detalhes (release/assinatura/Play Store/iOS): [`docs/apps-nativos.md`](docs/apps
 
 ## 7. Integração com o Edge (guarita)
 
-O Edge Service (Windows/.NET ou Go — fora deste repo) consome:
+O Edge Service (Windows/.NET ou Go — fora deste repo) integra o hardware
+**Intelbras** (controladores de acesso facial + câmeras LPR) à Cloud — guia
+completo em [`docs/integracao-intelbras.md`](docs/integracao-intelbras.md).
+Endpoints consumidos:
 
 | Endpoint | Uso |
 |---|---|
 | `POST /edge/validate-license` | ativação com vínculo de hardware (fingerprint) e modo degradado |
 | `POST /edge/validate-access` | leitor facial → `pessoa_id` → liberado/negado por área (agendamentos, recorrência) |
+| `POST /edge/lpr` | câmera LPR Intelbras → placa → veículo/pessoa → liberado/negado por área (comanda a cancela) |
 | `GET /edge/sync/comandos` | fila de comandos (Cadastro Vivo → hardware) |
 | `POST /edge/sync/eventos` | upload de eventos offline-first |
 | `POST /edge/sync/heartbeat` | saúde do dispositivo |

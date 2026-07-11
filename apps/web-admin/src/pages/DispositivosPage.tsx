@@ -9,6 +9,7 @@ const TIPOS = [
   { value: 'catraca', label: 'Catraca', icon: '🚧' },
   { value: 'cancela', label: 'Cancela', icon: '🚗' },
   { value: 'leitor_qrcode', label: 'Leitor QR Code', icon: '🔳' },
+  { value: 'lpr', label: 'Câmera LPR (placas)', icon: '📷' },
   { value: 'interfone', label: 'Interfone', icon: '📞' },
 ] as const
 

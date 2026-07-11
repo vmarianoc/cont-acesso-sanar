@@ -121,3 +121,42 @@ export async function registrarEventoAcesso(
     [uuidv4(), params.dispositivo_id, params.pessoa_id ?? null, params.resultado, params.metodo ?? 'facial']
   )
 }
+
+export interface ValidacaoPlaca extends ValidacaoAcesso {
+  placa: string
+  pessoa_id?: string | null
+  pessoa_nome?: string | null
+}
+
+/**
+ * Acesso veicular por LPR (câmeras Intelbras): a câmera/Edge envia a placa
+ * lida; a placa resolve o veículo ativo → pessoa, e valem as mesmas regras
+ * de área do acesso facial. Placa desconhecida é sempre negada (e registrada).
+ */
+export async function validarAcessoPlaca(
+  sql: Sql,
+  params: { dispositivo_id: string; placa: string }
+): Promise<ValidacaoPlaca> {
+  const placa = params.placa.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const [veiculo] = await sql.unsafe(
+    `SELECT v.pessoa_id, p.nome
+     FROM veiculos v JOIN pessoas p ON p.id = v.pessoa_id
+     WHERE v.placa = $1 AND v.ativo = true AND p.ativo = true
+     LIMIT 1`,
+    [placa]
+  )
+  if (!veiculo) {
+    const [disp] = await sql.unsafe(`SELECT area FROM dispositivos WHERE id = $1`, [params.dispositivo_id])
+    return {
+      resultado: 'negado',
+      motivo: 'PLACA_DESCONHECIDA',
+      area: disp?.area ?? '',
+      placa,
+    }
+  }
+  const validacao = await validarAcessoFacial(sql, {
+    dispositivo_id: params.dispositivo_id,
+    pessoa_id: veiculo.pessoa_id,
+  })
+  return { ...validacao, placa, pessoa_id: veiculo.pessoa_id, pessoa_nome: veiculo.nome }
+}

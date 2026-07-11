@@ -10,7 +10,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | Funcionalidade | Prioridade | Status | Observações |
 |---|---|---|---|
 | Edge Service — Windows Service | P0 | ⬜ | Fora deste repo (Edge é .NET 8 / Go); a Cloud já expõe `/edge/sync/*` para integrá-lo |
-| Controle de acesso (Hikvision) | P0 | ⬜ | Depende do SDK de hardware no Edge |
+| Controle de acesso (Intelbras) | P0 | 🟡 | Lado Cloud pronto: `/edge/validate-access` (facial) e **`/edge/lpr`** (acesso veicular por placa, câmeras LPR Intelbras) com regras por área e evento auditável (`metodo='placa'`); falta o Edge com SDK Intelbras — ver `docs/integracao-intelbras.md` |
 | Cadastro de moradores e unidades | P0 | ✅ | CRUD de condomínios/blocos/unidades (`/condominios`, `/blocos`, `/unidades`) + gestão de ocupantes (`/unidades/:id/ocupantes`) com regra de vínculo principal único; `/pessoas` e seed prontos; UI de busca/gestão de ocupantes em `apps/web-sindico` (`/unidades`) |
 | Painel da portaria (web local) | P0 | ✅ | `apps/web-portaria` (PWA): feed de eventos, registro manual, visitantes, online/offline |
 | Liberação de visitantes com notificação | P0 | ✅ | Pré-autorização + notificação (`notificacoes` + worker) e **tempo real via SSE + Redis pub/sub** (`GET /rt/stream`): portaria "Chama Morador" → app recebe na hora → decisão volta ao painel ao vivo (~150ms fim a fim) |
@@ -31,7 +31,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 | Multi-unidade e multi-condomínio | P0 | ✅ | /morador/contextos + header x-unidade-id; /auth/contas e /auth/trocar-condominio (mesmo e-mail em vários tenants); seletor no app do morador |
 | Painel da administradora (rede) | P0 | ✅ | `/admin/*` (superadmin): resumo consolidado, lista com uso por condomínio, onboarding self-service (tenant+licença+convite do síndico), plano/ativação; tela Minha Rede no web-admin |
 | Importação via CSV/Excel | P1 | ✅ | `POST /unidades/importar` aceita **PDF, CSV e XLSX** (cabeçalhos flexíveis: unidade, nome, vínculo, documento, email, telefone), com dry-run, idempotência e classificação física/jurídica; validado contra relatório real de 660 unidades (PDF) e fixtures CSV/XLSX |
-| Migração Hikvision | P1 | ⬜ | — |
+| Migração de legado (Hikvision → Intelbras) | P1 | ⬜ | Primeiro condomínio já nasce Intelbras; migração de bases legadas fica para quando houver caso real |
 | Chat portaria ↔ morador | P1 | ✅ | Conversa por unidade (morador só vê as suas), entrega em tempo real via SSE (~100ms), telas na portaria (lista + thread) e no app do morador |
 | OCR de documentos (RG, CNH) | P1 | ⬜ | — |
 | Central SIP (ramal no app) | P2 | ⬜ | — |

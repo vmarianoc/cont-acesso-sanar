@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { criarLiberacao, validarAcessoFacial, registrarEventoAcesso } from '../services/acessoService.js'
+import { criarLiberacao, validarAcessoFacial, validarAcessoPlaca, registrarEventoAcesso } from '../services/acessoService.js'
 import { registrarAuditoria } from '../services/auditoriaService.js'
 
 const PERFIS_GESTAO = new Set(['admin', 'sindico', 'superadmin', 'porteiro'])
@@ -53,6 +53,41 @@ const acessoRoutes: FastifyPluginAsync = async (fastify) => {
           pessoa_id,
           resultado: validacao.resultado,
           metodo,
+        })
+      }
+      return validacao
+    })
+
+    return reply.status(200).send({ data: resultado })
+  })
+
+  /**
+   * Acesso veicular por LPR (Intelbras): o Edge recebe o push da câmera com a
+   * placa e consulta aqui; a resposta comanda a cancela. Mesmo contrato de
+   * modo degradado do facial — indisponibilidade nunca bloqueia localmente.
+   */
+  fastify.post('/edge/lpr', async (request, reply) => {
+    const LprBody = z.object({
+      schema_name: z.string(),
+      dispositivo_id: z.string().uuid(),
+      placa: z.string().min(6).max(10),
+    })
+    const parsed = LprBody.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        erro: { codigo: 'DADOS_INVALIDOS', mensagem: parsed.error.errors[0].message },
+      })
+    }
+    const { schema_name, dispositivo_id, placa } = parsed.data
+
+    const resultado = await fastify.withTenant(schema_name, async (sql) => {
+      const validacao = await validarAcessoPlaca(sql, { dispositivo_id, placa })
+      if (validacao.motivo !== 'DISPOSITIVO_DESCONHECIDO') {
+        await registrarEventoAcesso(sql, {
+          dispositivo_id,
+          pessoa_id: validacao.pessoa_id ?? null,
+          resultado: validacao.resultado,
+          metodo: 'placa',
         })
       }
       return validacao
