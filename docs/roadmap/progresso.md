@@ -9,7 +9,7 @@ Legenda: ✅ concluído · 🟡 parcial · ⬜ não iniciado
 
 | Funcionalidade | Prioridade | Status | Observações |
 |---|---|---|---|
-| Edge Service — Windows Service | P0 | ✅ | `apps/edge` (Node/TS, serviço Windows via NSSM): listener ANPR das câmeras LPR, stream de eventos do facial, sync de comandos com ack, cache de placas + fila offline (modo degradado), licença por fingerprint e heartbeat — validado E2E contra a Cloud |
+| Edge Service — Windows Service | P0 | ✅ | `apps/edge` — com **update OTA** (publicação única atualiza todos os condomínios, sha256 + rollback automático) e **backup local reversível** diário; (Node/TS, serviço Windows via NSSM): listener ANPR das câmeras LPR, stream de eventos do facial, sync de comandos com ack, cache de placas + fila offline (modo degradado), licença por fingerprint e heartbeat — validado E2E contra a Cloud |
 | Controle de acesso (Intelbras) | P0 | 🟡 | Lado Cloud pronto: `/edge/validate-access` (facial) e **`/edge/lpr`** (acesso veicular por placa, câmeras LPR Intelbras) com regras por área e evento auditável (`metodo='placa'`); Edge implementado em `apps/edge` (HTTP API Intelbras, digest auth) — ver `apps/edge/README.md`; resta homologar com hardware real |
 | Cadastro de moradores e unidades | P0 | ✅ | CRUD de condomínios/blocos/unidades (`/condominios`, `/blocos`, `/unidades`) + gestão de ocupantes (`/unidades/:id/ocupantes`) com regra de vínculo principal único; `/pessoas` e seed prontos; UI de busca/gestão de ocupantes em `apps/web-sindico` (`/unidades`) |
 | Painel da portaria (web local) | P0 | ✅ | `apps/web-portaria` (PWA): feed de eventos, registro manual, visitantes, online/offline |

@@ -67,6 +67,9 @@ if [ ! -d /etc/letsencrypt/live/condar.app ]; then
 fi
 nginx -t && systemctl reload nginx
 
+echo "== backup diário (cron)"
+grep -q condar/deploy/backup.sh /etc/crontab || echo "20 3 * * * root bash /opt/condar/deploy/backup.sh >> /var/log/condar-backup.log 2>&1" >> /etc/crontab
+
 echo "== pronto"
 curl -sf http://127.0.0.1:3000/health && echo && echo "API no ar. Teste: https://api.condar.app/health"
 echo "Seed de demonstração (opcional): sudo -u condar bash -c 'cd $DIR && pnpm --filter api seed'"

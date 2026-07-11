@@ -5,10 +5,13 @@ import { CloudClient, fingerprint } from './cloud.js'
 import { extrairPlaca } from './anpr.js'
 import { abrirAcesso, aplicarComando, extrairUserIdEvento } from './intelbras.js'
 import { Store } from './store.js'
+import { guardaDeBoot, verificarEAtualizar, VERSAO_EDGE } from './updater.js'
+import { fazerBackup } from './backup.js'
 
 const log = pino({ name: 'edge' })
 
 async function main() {
+  guardaDeBoot() // rollback automático se um update recém-aplicado não estabilizar
   const cfg = carregarConfig()
   const cloud = new CloudClient(cfg)
   const store = new Store(process.env.EDGE_STATE ?? 'edge.state.json')
@@ -129,7 +132,7 @@ async function main() {
           await cloud.ackComando(cmd.id, ok)
           log.info({ dev: dev.nome, tipo: cmd.tipo_comando, ok }, 'comando processado')
         }
-        await cloud.heartbeat(dev.dispositivo_id, 'online')
+        await cloud.heartbeat(dev.dispositivo_id, 'online', VERSAO_EDGE)
       } catch (err) {
         log.warn({ dev: dev.nome, err: (err as Error).message }, 'sync falhou (Cloud offline?)')
       }
@@ -148,9 +151,20 @@ async function main() {
   sincronizar()
   const timer = setInterval(sincronizar, cfg.sync_seg * 1000)
 
+  // backup local diário (config + estado) e verificação de update a cada 6h
+  fazerBackup()
+  const timerBackup = setInterval(() => fazerBackup(), 24 * 3600_000)
+  const checarUpdate = () =>
+    verificarEAtualizar(cloud).catch((err) => log.warn({ err: err.message }, 'checagem de update falhou'))
+  setTimeout(checarUpdate, 30_000)
+  const timerUpdate = setInterval(checarUpdate, 6 * 3600_000)
+  log.info({ versao: VERSAO_EDGE }, 'Edge no ar')
+
   const encerrar = () => {
     log.info('encerrando Edge')
     clearInterval(timer)
+    clearInterval(timerBackup)
+    clearInterval(timerUpdate)
     server.close(() => process.exit(0))
     setTimeout(() => process.exit(0), 3000)
   }

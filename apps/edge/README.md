@@ -77,6 +77,28 @@ Crie um usuário dedicado (perfil `porteiro`) para o Edge — ex.
 `edge@<condominio>.com.br` — na tela Usuários do síndico. É a credencial de
 `email`/`senha` do config; troque-a se o Edge for comprometido.
 
+## Atualização automática (OTA)
+
+O Edge verifica a Cloud a cada 6 h (e 30 s após cada boot). Quando você
+publica um release — `bash deploy/publicar-edge.sh 1.1.0 "notas"` no repo —
+**todos os condomínios** baixam o pacote, conferem o sha256, fazem backup da
+versão corrente em `rollback/` e reiniciam já atualizados. Se a versão nova
+falhar 3 boots seguidos, o Edge **restaura a anterior sozinho** e segue
+operando. As versões de cada condomínio aparecem em
+`GET /admin/edge/releases` (heartbeat).
+
+## Backup local reversível
+
+Diariamente (e antes de todo update) o Edge copia `edge.config.json` e
+`edge.state.json` (mapa pessoa↔UserID do BioT, cache de placas, fila
+offline) para `backups/<data-hora>/`, mantendo 30. Perdeu/corrompeu algo:
+
+```powershell
+npm run restaurar          # lista os backups
+npm run restaurar -- 2026-07-11-03-00-00
+nssm restart CondarEdge
+```
+
 ## Operação
 
 - `edge.state.json` guarda o cache de placas e a fila offline — não apague com

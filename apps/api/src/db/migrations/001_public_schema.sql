@@ -68,3 +68,14 @@ UPDATE public.tenants
    SET codigo = UPPER(SUBSTRING(REPLACE(id::text, '-', '') FROM 1 FOR 6))
  WHERE codigo IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_tenants_codigo ON public.tenants (UPPER(codigo));
+
+-- Releases do Edge Service (atualização OTA de todos os condomínios)
+CREATE TABLE IF NOT EXISTS public.edge_releases (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  versao      TEXT NOT NULL UNIQUE,
+  notas       TEXT,
+  sha256      TEXT NOT NULL,
+  pacote      BYTEA NOT NULL,
+  publicado_por TEXT,
+  criado_em   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

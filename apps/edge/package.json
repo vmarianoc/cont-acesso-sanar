@@ -8,7 +8,9 @@
     "start": "tsx src/index.ts",
     "build": "tsc --noEmit",
     "test": "vitest run",
-    "provisionar": "tsx src/provisionar.ts"
+    "provisionar": "tsx src/provisionar.ts",
+    "backup": "tsx -e \"import('./src/backup.js').then(m=>m.fazerBackup())\"",
+    "restaurar": "tsx src/restaurar.ts"
   },
   "dependencies": {
     "pino": "^9.0.0",

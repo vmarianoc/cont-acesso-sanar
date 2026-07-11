@@ -76,6 +76,19 @@ export class CloudClient {
     })
   }
 
+  checarUpdate(versao: string): Promise<{ atualizar: boolean; versao?: string; sha256?: string }> {
+    return this.req('GET', `/edge/update/check?versao=${versao}`)
+  }
+
+  async baixarUpdate(versao: string): Promise<Buffer> {
+    if (!this.token) await (this as any).login()
+    const res = await fetch(`${this.cfg.cloud_url}/edge/update/download/${versao}`, {
+      headers: { authorization: `Bearer ${this.token}` },
+    })
+    if (!res.ok) throw new Error(`download do update falhou: ${res.status}`)
+    return Buffer.from(await res.arrayBuffer())
+  }
+
   validarQr(dispositivo_id: string, qr_token: string) {
     return this.req('POST', '/edge/qr', { schema_name: this.cfg.schema_name, dispositivo_id, qr_token })
   }
@@ -106,12 +119,13 @@ export class CloudClient {
     })
   }
 
-  heartbeat(dispositivo_id: string, status: 'online' | 'degradado') {
+  heartbeat(dispositivo_id: string, status: 'online' | 'degradado', versao?: string) {
     return this.req('POST', '/edge/sync/heartbeat', {
       dispositivo_id,
       tenant_id: this.cfg.tenant_id,
       schema_name: this.cfg.schema_name,
       status,
+      versao_fw: versao,
     })
   }
 }
