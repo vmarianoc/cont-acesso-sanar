@@ -12,3 +12,4 @@ coverage/
 
 # Never commit uploaded condo reports (LGPD / personal data)
 *.pdf
+apps/api/secrets/

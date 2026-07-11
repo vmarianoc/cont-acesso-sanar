@@ -18,7 +18,7 @@ const firebaseConfig = {
 // Pode ser sobrescrita por env (VITE_FIREBASE_VAPID_KEY) sem rebuild do pacote.
 const VAPID_KEY =
   (import.meta as any).env?.VITE_FIREBASE_VAPID_KEY ??
-  'BKFToUjSWHIxMqKb_YF4kpRprnMV7lxnIlg17l7Mcf4rxsxH0Bwjb1DgqhgiZ-7KNpdY_SUrtWGuStGx6Uq3EuY'
+  'BKFToUjSWHIxMqKb_YF4kpRprnMV7IxnlIg17I7Mcf4rxsxH0Bwjb1DgqhgiZ-7KNpdY_SUrtWGuStGx6Uq3EuY'
 
 /**
  * Pede permissão de notificação (se necessário), obtém o token FCM do
