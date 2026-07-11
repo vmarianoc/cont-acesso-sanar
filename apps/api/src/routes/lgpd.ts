@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { registrarAuditoria } from '../services/auditoriaService.js'
+import { enfileirarComandoFacial } from '../services/syncEdgeService.js'
 
 const PERFIS_GESTAO = new Set(['admin', 'sindico', 'superadmin'])
 
@@ -89,6 +90,7 @@ const lgpdRoutes: FastifyPluginAsync = async (fastify) => {
          WHERE id = $1 RETURNING *`,
         [id]
       )
+      await enfileirarComandoFacial(db, 'pessoa.remover', id)
       await db.unsafe(`DELETE FROM biometrias WHERE pessoa_id = $1`, [id])
       await db.unsafe(`UPDATE usuarios_tenant SET ativo = false WHERE pessoa_id = $1`, [id])
       await registrarAuditoria(db, {

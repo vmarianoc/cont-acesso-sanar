@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppScreen, Header, Button, TextField, Badge, iniciais } from '@condar/ui'
-import { fetchPessoas, criarPessoa, atualizarPessoa } from '../api/admin'
+import { fetchPessoas, criarPessoa, atualizarPessoa, enviarFotoPessoa } from '../api/admin'
 import BottomNav from '../components/BottomNav'
 
 const TIPOS = [
@@ -17,6 +17,7 @@ export default function CadastrosPage() {
   const [form, setForm] = useState({ nome: '', cpf: '', tipo: 'morador' })
   const [error, setError] = useState<string | null>(null)
 
+  const [fotoStatus, setFotoStatus] = useState<Record<string, 'enviando' | 'ok' | 'erro'>>({})
   const { data: pessoas } = useQuery({
     queryKey: ['pessoas', busca],
     queryFn: () => fetchPessoas(busca || undefined),
@@ -112,16 +113,40 @@ export default function CadastrosPage() {
             </span>
             <span className="flex flex-col items-end gap-1">
               <Badge tone={p.tipo === 'morador' ? 'green' : 'neutral'}>{p.tipo}</Badge>
-              <button
-                onClick={() =>
-                  atualizarPessoa(p.id, { ativo: !(p as any).ativo }).then(() =>
-                    qc.invalidateQueries({ queryKey: ['pessoas'] })
-                  )
-                }
-                className="text-xs text-brand-600 font-semibold"
-              >
-                {(p as any).ativo === false ? 'Reativar' : 'Desativar'}
-              </button>
+              <span className="flex gap-3">
+                <label className="text-xs text-brand-600 font-semibold cursor-pointer">
+                  📷 Foto
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    className="hidden"
+                    onChange={(e) => {
+                      const arquivo = e.target.files?.[0]
+                      if (!arquivo) return
+                      setFotoStatus((prev) => ({ ...prev, [p.id]: 'enviando' }))
+                      enviarFotoPessoa(p.id, arquivo)
+                        .then(() => setFotoStatus((prev) => ({ ...prev, [p.id]: 'ok' })))
+                        .catch(() => setFotoStatus((prev) => ({ ...prev, [p.id]: 'erro' })))
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+                <button
+                  onClick={() =>
+                    atualizarPessoa(p.id, { ativo: !(p as any).ativo }).then(() =>
+                      qc.invalidateQueries({ queryKey: ['pessoas'] })
+                    )
+                  }
+                  className="text-xs text-brand-600 font-semibold"
+                >
+                  {(p as any).ativo === false ? 'Reativar' : 'Desativar'}
+                </button>
+              </span>
+              {fotoStatus[p.id] && (
+                <span className={`text-[10px] ${fotoStatus[p.id] === 'erro' ? 'text-red-600' : 'text-gray-500'}`}>
+                  {fotoStatus[p.id] === 'enviando' ? 'Enviando foto…' : fotoStatus[p.id] === 'ok' ? 'Foto sincronizada ✓' : 'Falha no envio'}
+                </span>
+              )}
             </span>
           </div>
         ))}

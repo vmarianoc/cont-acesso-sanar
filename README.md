@@ -163,7 +163,7 @@ cp apps/api/.env.example apps/api/.env    # DATABASE_URL, REDIS_URL, JWT_*, SMTP
 pnpm --filter api migrate
 
 # builds dos apps (aponte para a URL pública da API)
-VITE_API_URL=https://api.seudominio.com.br pnpm -r build
+VITE_API_URL=https://api.condar.app pnpm -r build
 ```
 
 `systemd` (uma unit para a API, outra para os workers):
@@ -195,7 +195,7 @@ nginx (API + um app; repita o bloco de site para cada front):
 ```nginx
 server {
   listen 443 ssl http2;
-  server_name api.seudominio.com.br;
+  server_name api.condar.app;
   # ssl_certificate ... (certbot/letsencrypt)
 
   location / {
@@ -215,7 +215,7 @@ server {
 
 server {
   listen 443 ssl http2;
-  server_name morador.seudominio.com.br;
+  server_name morador.condar.app;
   root /opt/condar/apps/web-morador/dist;
   location / { try_files $uri /index.html; }   # SPA fallback
 }
@@ -257,7 +257,7 @@ versionados (`apps/*/android`, appIds `br.com.condar.*`). Para gerar o APK:
 
 ```bash
 cd apps/web-morador
-VITE_API_URL=https://api.seudominio.com.br pnpm app:android
+VITE_API_URL=https://api.condar.app pnpm app:android
 # → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 

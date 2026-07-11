@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
+import { enfileirarComandoFacial } from '../services/syncEdgeService.js'
 
 const CreatePessoaBody = z.object({
   nome: z.string().min(2),
@@ -78,6 +79,8 @@ const pessoasRoutes: FastifyPluginAsync = async (fastify) => {
       dados_depois: rows[0] as Record<string, unknown>,
       ip: request.ip,
     })
+    // cadastro novo vai para os controladores faciais via Edge
+    await enfileirarComandoFacial(request.tenantDb!, 'pessoa.criar', id)
 
     return reply.status(201).send({ data: rows[0] })
   })
@@ -120,6 +123,12 @@ const pessoasRoutes: FastifyPluginAsync = async (fastify) => {
       `UPDATE pessoas SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
       params
     )
+    // sincroniza o cadastro no hardware: desativar remove do equipamento
+    await enfileirarComandoFacial(
+      request.tenantDb!,
+      parsed.data.ativo === false ? 'pessoa.remover' : 'pessoa.atualizar',
+      id
+    )
     await registrarAuditoria(request.tenantDb!, {
       usuario_id: (request.user as any).sub,
       acao: 'pessoa.atualizar',
@@ -150,6 +159,73 @@ const pessoasRoutes: FastifyPluginAsync = async (fastify) => {
       [id]
     )
     return reply.status(200).send({ data: rows })
+  })
+
+  /**
+   * Foto facial da pessoa (base do reconhecimento no equipamento Intelbras).
+   * Multipart (campo "foto", JPEG/PNG até 5 MB); substitui a anterior e
+   * enfileira face.atualizar para os controladores via Edge.
+   */
+  fastify.post('/pessoas/:id/foto', async (request, reply) => {
+    const perfil = (request.user as any).perfil as string
+    if (!['admin', 'sindico', 'superadmin', 'porteiro'].includes(perfil)) {
+      return reply.status(403).send({
+        erro: { codigo: 'ACESSO_NEGADO', mensagem: 'Sem permissão para enviar foto' },
+      })
+    }
+    const { id } = request.params as { id: string }
+    const [pessoa] = await request.tenantDb!.unsafe(`SELECT id, nome FROM pessoas WHERE id = $1`, [id])
+    if (!pessoa) {
+      return reply.status(404).send({
+        erro: { codigo: 'NAO_ENCONTRADA', mensagem: 'Pessoa não encontrada' },
+      })
+    }
+    const arquivo = await (request as any).file()
+    if (!arquivo || !['image/jpeg', 'image/png'].includes(arquivo.mimetype)) {
+      return reply.status(400).send({
+        erro: { codigo: 'ARQUIVO_INVALIDO', mensagem: 'Envie uma imagem JPEG ou PNG no campo "foto"' },
+      })
+    }
+    const conteudo = await arquivo.toBuffer()
+    if (conteudo.length > 5 * 1024 * 1024) {
+      return reply.status(400).send({
+        erro: { codigo: 'ARQUIVO_GRANDE', mensagem: 'Foto deve ter no máximo 5 MB' },
+      })
+    }
+    await request.tenantDb!.unsafe(
+      `UPDATE biometrias SET ativo = false WHERE pessoa_id = $1 AND tipo = 'facial'`,
+      [id]
+    )
+    const bioId = uuidv4()
+    await request.tenantDb!.unsafe(
+      `INSERT INTO biometrias (id, pessoa_id, tipo, template) VALUES ($1, $2, 'facial', $3)`,
+      [bioId, id, conteudo]
+    )
+    const dispositivos = await enfileirarComandoFacial(request.tenantDb!, 'face.atualizar', id)
+    await registrarAuditoria(request.tenantDb!, {
+      usuario_id: (request.user as any).sub,
+      acao: 'pessoa.foto_facial',
+      tabela: 'biometrias',
+      registro_id: bioId,
+      dados_depois: { pessoa_id: id, tamanho: conteudo.length },
+      ip: request.ip,
+    })
+    return reply.status(201).send({ data: { biometria_id: bioId, dispositivos_sincronizados: dispositivos } })
+  })
+
+  /** Foto facial atual (para exibição no admin). */
+  fastify.get('/pessoas/:id/foto', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const [bio] = await request.tenantDb!.unsafe(
+      `SELECT template FROM biometrias
+       WHERE pessoa_id = $1 AND tipo = 'facial' AND ativo = true
+       ORDER BY criado_em DESC LIMIT 1`,
+      [id]
+    )
+    if (!bio) {
+      return reply.status(404).send({ erro: { codigo: 'SEM_FOTO', mensagem: 'Pessoa sem foto facial' } })
+    }
+    return reply.status(200).header('content-type', 'image/jpeg').send(Buffer.from(bio.template))
   })
 }
 

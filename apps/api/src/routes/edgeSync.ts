@@ -108,7 +108,12 @@ const edgeSyncRoutes: FastifyPluginAsync = async (fastify) => {
       )
     })
 
-    return reply.status(200).send({ data: rows })
+    // sql.unsafe devolve jsonb como string — o Edge espera objeto
+    const data = (rows as any[]).map((r) => ({
+      ...r,
+      payload: typeof r.payload === 'string' ? JSON.parse(r.payload) : r.payload,
+    }))
+    return reply.status(200).send({ data })
   })
 
   // Cache do modo degradado: placas de veículos ativos de moradores ativos

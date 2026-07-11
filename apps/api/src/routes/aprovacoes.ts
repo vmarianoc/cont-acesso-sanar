@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
+import { enfileirarComandoFacial } from '../services/syncEdgeService.js'
 import { enqueueNotificacao } from '../workers/notificacoesQueue.js'
 import { criarLiberacao } from '../services/acessoService.js'
 
@@ -17,14 +18,16 @@ const UpdateAprovacaoBody = z.object({
   observacao: z.string().optional(),
 })
 
-function comandoDoTipo(tipoAprovacao: string): string {
+// Vocabulário entendido pelo Edge (apps/edge → API BioT Intelbras).
+// Veículos não geram comando de hardware: o LPR consulta a Cloud/cache.
+function comandoDoTipo(tipoAprovacao: string): 'pessoa.atualizar' | 'pessoa.remover' | 'face.atualizar' | null {
   const t = tipoAprovacao.toLowerCase()
-  if (t.includes('veiculo')) return 'cadastro.veiculo'
-  if (t.includes('biometria')) return 'biometria.sincronizar'
-  if (t.includes('bloqueio')) return 'pessoa.bloquear'
+  if (t.includes('veiculo')) return null
+  if (t.includes('biometria') || t.includes('facial') || t.includes('foto')) return 'face.atualizar'
+  if (t.includes('bloqueio')) return 'pessoa.remover'
   if (t.includes('pessoa') || t.includes('morador') || t.includes('titular') || t.includes('funcionario'))
-    return 'cadastro.pessoa'
-  return 'config.atualizar'
+    return 'pessoa.atualizar'
+  return null
 }
 
 const aprovacoesRoutes: FastifyPluginAsync = async (fastify) => {
@@ -119,22 +122,12 @@ const aprovacoesRoutes: FastifyPluginAsync = async (fastify) => {
       )
 
       if (status === 'aprovado') {
-        const dispositivos = await db.unsafe<{ id: string }[]>(
-          `SELECT id FROM dispositivos WHERE ativo = true`
-        )
         const tipoComando = comandoDoTipo(atualizada.tipo)
-        const payload = {
-          aprovacao_id: id,
-          pessoa_id: atualizada.pessoa_id,
-          unidade_id: atualizada.unidade_id,
-          dados: atualizada.dados,
-        }
-        for (const disp of dispositivos) {
-          await db.unsafe(
-            `INSERT INTO sync_queue (id, dispositivo_id, tipo_comando, payload)
-             VALUES ($1, $2, $3, $4)`,
-            [uuidv4(), disp.id, tipoComando, db.json(payload)] as any
-          )
+        if (tipoComando && atualizada.pessoa_id) {
+          await enfileirarComandoFacial(db, tipoComando, atualizada.pessoa_id, {
+            aprovacao_id: id,
+            unidade_id: atualizada.unidade_id,
+          })
         }
       }
 

@@ -44,13 +44,13 @@ describe('PATCH /aprovacoes/:id — Cadastro Vivo cascade', () => {
     try {
       await reserved.unsafe(`SET search_path TO ${t.schemaName}, public`)
 
-      const cmds = await reserved.unsafe<{ tipo_comando: string; typ: string }[]>(
-        `SELECT tipo_comando, jsonb_typeof(payload) AS typ FROM sync_queue WHERE payload->>'aprovacao_id' = $1`,
+      // aprovação de veículo não gera comando de hardware: o LPR consulta a
+      // Cloud (/edge/lpr) e o cache de placas — nada a fazer no controlador
+      const cmds = await reserved.unsafe<{ tipo_comando: string }[]>(
+        `SELECT tipo_comando FROM sync_queue WHERE payload->>'aprovacao_id' = $1`,
         [t.aprovacaoId]
       )
-      expect(cmds.length).toBeGreaterThan(0)
-      expect(cmds[0].tipo_comando).toBe('cadastro.veiculo')
-      expect(cmds[0].typ).toBe('object')
+      expect(cmds.length).toBe(0)
 
       const notifs = await reserved.unsafe(
         `SELECT id FROM notificacoes WHERE dados->>'aprovacao_id' = $1`,

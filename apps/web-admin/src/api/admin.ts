@@ -50,6 +50,12 @@ const get = <T>(url: string) => client.get(url).then((r) => r.data.data as T)
 export const fetchPessoas = (busca?: string) =>
   get<Pessoa[]>(`/pessoas?limit=100${busca ? `&busca=${encodeURIComponent(busca)}` : ''}`)
 
+export const enviarFotoPessoa = (id: string, arquivo: File) => {
+  const fd = new FormData()
+  fd.append('foto', arquivo)
+  return client.post(`/pessoas/${id}/foto`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+}
+
 export const criarPessoa = (payload: { nome: string; cpf?: string; tipo: string }) =>
   client.post('/pessoas', payload).then((r) => r.data.data as Pessoa)
 

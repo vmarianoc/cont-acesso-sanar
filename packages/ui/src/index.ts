@@ -1,5 +1,6 @@
 export * from './components'
 export { default as client } from './client'
+export { apiBase } from './client'
 export * from './auth'
 export * from './useAuth'
 export * from './useRealtime'

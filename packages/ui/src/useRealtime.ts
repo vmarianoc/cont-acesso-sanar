@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { apiBase } from './client'
 
 export interface EventoRealtime {
   tipo: string
@@ -19,7 +20,7 @@ export function useRealtime(onEvento: (evento: EventoRealtime) => void) {
     const token = localStorage.getItem('token')
     if (!token) return
 
-    const base = (import.meta as any).env?.VITE_API_URL ?? '/api'
+    const base = apiBase()
     let es: EventSource | null = null
     let cancelado = false
 

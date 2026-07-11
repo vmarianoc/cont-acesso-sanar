@@ -1,5 +1,5 @@
 {
-  "cloud_url": "https://api.seudominio.com.br/api",
+  "cloud_url": "https://api.condar.app",
   "tenant_id": "<uuid do tenant>",
   "schema_name": "tenant_<uuid com underscores>",
   "license_key": "<license_key da licença do condomínio>",

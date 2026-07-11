@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import fastifyMultipart from '@fastify/multipart'
+import fastifyCors from '@fastify/cors'
 import { randomUUID } from 'node:crypto'
 
 import dbPlugin from './plugins/db.js'
@@ -59,6 +60,27 @@ export async function buildApp() {
 
   await fastify.register(fastifyMultipart, {
     limits: { fileSize: 25 * 1024 * 1024 },
+  })
+
+  // Apps servidos em *.condar.app falam com api.condar.app (cross-origin);
+  // em dev o proxy /api do Vite mantém same-origin, e origens sem header
+  // (Edge, curl, apps nativos) passam direto.
+  await fastify.register(fastifyCors, {
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true)
+      try {
+        const { hostname } = new URL(origin)
+        const ok =
+          hostname === 'condar.app' ||
+          hostname.endsWith('.condar.app') ||
+          hostname === 'localhost' ||
+          hostname === '127.0.0.1'
+        cb(null, ok)
+      } catch {
+        cb(null, false)
+      }
+    },
+    credentials: true,
   })
 
   await fastify.register(dbPlugin)
