@@ -5,14 +5,20 @@ import type { DispositivoEdge } from './config.js'
 const log = pino({ name: 'edge-intelbras' })
 
 /**
- * Cliente da HTTP API (v3) dos equipamentos Intelbras (câmeras LPR e
- * controladores de acesso). A API usa Digest auth; implementamos o handshake
- * com node:crypto para não depender de SDK.
+ * Cliente da API BioT dos equipamentos Intelbras (controladores de acesso
+ * facial e câmeras LPR), conforme a collection oficial
+ * "Controle de Acesso - Bio-T - Intelbras". Auth: Digest MD5 (node:crypto,
+ * sem SDK). Usuários/faces usam a API V2 JSON (AccessUser/AccessFace
+ * insertMulti); a abertura de porta usa o accessControl.cgi (V1).
  */
 
 const md5 = (v: string) => createHash('md5').update(v).digest('hex')
 
-async function digestFetch(dev: DispositivoEdge, caminho: string, init?: RequestInit): Promise<Response> {
+export async function digestFetch(
+  dev: DispositivoEdge,
+  caminho: string,
+  init?: RequestInit
+): Promise<Response> {
   const url = `http://${dev.ip}${caminho}`
   const primeira = await fetch(url, { ...init, signal: AbortSignal.timeout(4000) })
   if (primeira.status !== 401) return primeira
@@ -42,66 +48,82 @@ async function digestFetch(dev: DispositivoEdge, caminho: string, init?: Request
   })
 }
 
-/** Abre o relé (cancela/porta) do equipamento. */
+/** Abre o relé (cancela/porta), canal 1 — BioT V1. */
 export async function abrirAcesso(dev: DispositivoEdge): Promise<boolean> {
   try {
-    // Controladores de acesso e câmeras LPR expõem o openDoor do canal 1.
     const res = await digestFetch(dev, '/cgi-bin/accessControl.cgi?action=openDoor&channel=1')
-    if (res.ok) return true
-    // fallback: acionamento de saída de alarme/relé (câmeras)
-    const alt = await digestFetch(
-      dev,
-      '/cgi-bin/trafficSnap.cgi?action=openStrobe&channel=1&info.openType=Normal&info.plateNumber='
-    )
-    return alt.ok
+    return res.ok
   } catch (err) {
     log.warn({ dev: dev.nome, err: (err as Error).message }, 'falha ao acionar relé')
     return false
   }
 }
 
+// ---- Cadastro (API V2 JSON) ----
+
+export function payloadUsuario(userId: string, nome: string) {
+  return {
+    UserList: [
+      {
+        UserID: userId,
+        UserName: nome,
+        UserType: 0,
+        UserStatus: 0,
+        Authority: 1,
+        Doors: [0],
+        TimeSections: [255],
+        ValidFrom: '2020-01-01 00:00:00',
+        ValidTo: '2037-12-31 23:59:59',
+      },
+    ],
+  }
+}
+
+export function payloadFace(userId: string, fotoBase64: string) {
+  return { FaceList: [{ UserID: userId, PhotoData: [fotoBase64] }] }
+}
+
+async function postJson(dev: DispositivoEdge, caminho: string, body: unknown): Promise<boolean> {
+  const res = await digestFetch(dev, caminho, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  return res.ok
+}
+
 /**
- * Aplica um comando da sync_queue no equipamento facial (cadastro vivo):
- * inserir/atualizar/remover usuário e foto facial.
+ * Aplica um comando da sync_queue no controlador facial. `userId` é o ID
+ * numérico do BioT mapeado a partir do pessoa_id (uuid) pelo Store — o
+ * equipamento não aceita UUID como UserID.
  */
 export async function aplicarComando(
   dev: DispositivoEdge,
-  comando: { tipo_comando: string; payload: Record<string, any> }
+  comando: { tipo_comando: string; payload: Record<string, any> },
+  userId: string
 ): Promise<boolean> {
   const p = comando.payload ?? {}
   try {
     switch (comando.tipo_comando) {
-      case 'pessoa.criar':
+      case 'pessoa.criar': {
+        return await postJson(dev, '/cgi-bin/AccessUser.cgi?action=insertMulti', payloadUsuario(userId, p.nome ?? ''))
+      }
       case 'pessoa.atualizar': {
-        const res = await digestFetch(
-          dev,
-          `/cgi-bin/recordUpdater.cgi?action=insert&name=AccessControlCard&CardName=${encodeURIComponent(
-            p.nome ?? ''
-          )}&CardNo=${encodeURIComponent(p.pessoa_id ?? '')}&CardStatus=0&CardType=0`
-        )
-        return res.ok
+        // updateMulti falha se o usuário não existe; tenta update e cai para insert
+        const ok = await postJson(dev, '/cgi-bin/AccessUser.cgi?action=updateMulti', payloadUsuario(userId, p.nome ?? ''))
+        if (ok) return true
+        return await postJson(dev, '/cgi-bin/AccessUser.cgi?action=insertMulti', payloadUsuario(userId, p.nome ?? ''))
       }
       case 'pessoa.remover': {
-        const res = await digestFetch(
-          dev,
-          `/cgi-bin/recordUpdater.cgi?action=remove&name=AccessControlCard&CardNo=${encodeURIComponent(
-            p.pessoa_id ?? ''
-          )}`
-        )
+        await digestFetch(dev, `/cgi-bin/AccessFace.cgi?action=removeMulti&UserIDList[0]=${userId}`)
+        const res = await digestFetch(dev, `/cgi-bin/AccessUser.cgi?action=removeMulti&UserIDList[0]=${userId}`)
         return res.ok
       }
       case 'face.atualizar': {
         if (!p.foto_base64) return true
-        const res = await digestFetch(
-          dev,
-          `/cgi-bin/FaceInfoManager.cgi?action=add&UserID=${encodeURIComponent(p.pessoa_id ?? '')}`,
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ Info: { PhotoData: [p.foto_base64] } }),
-          }
-        )
-        return res.ok
+        const ok = await postJson(dev, '/cgi-bin/AccessFace.cgi?action=updateMulti', payloadFace(userId, p.foto_base64))
+        if (ok) return true
+        return await postJson(dev, '/cgi-bin/AccessFace.cgi?action=insertMulti', payloadFace(userId, p.foto_base64))
       }
       default:
         log.warn({ tipo: comando.tipo_comando }, 'comando desconhecido — marcando como executado')
@@ -114,46 +136,56 @@ export async function aplicarComando(
 }
 
 /**
- * Assina o stream de eventos do controlador facial
- * (eventManager attach, multipart infinito) e chama onEvento com o UserID
- * reconhecido a cada passagem. Reconecta sozinho.
+ * Provisiona o Event Server do BioT: o equipamento passa a empurrar eventos
+ * de acesso por HTTP para o Edge (path /notification) com keepalive em
+ * /keepalive — é assim que os acessos faciais chegam aqui.
  */
-export function assinarEventosFacial(
+export async function configurarEventServer(
   dev: DispositivoEdge,
-  onEvento: (userId: string) => void
-): () => void {
-  let ativo = true
-  const conectar = async () => {
-    while (ativo) {
-      try {
-        const res = await fetch(
-          `http://${dev.ip}/cgi-bin/eventManager.cgi?action=attach&codes=[AccessControl]`,
-          {} // stream infinito: sem timeout
-        )
-        // Digest também se aplica aqui; simplificação: alguns firmwares aceitam
-        // basic/anonymous no attach. Em produção, ajuste conforme o equipamento.
-        if (!res.ok || !res.body) throw new Error(`attach HTTP ${res.status}`)
-        const reader = (res.body as any).getReader()
-        let buffer = ''
-        while (ativo) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buffer += Buffer.from(value).toString('utf8')
-          const m = buffer.match(/UserID=([\w-]+)/)
-          if (m) {
-            onEvento(m[1])
-            buffer = ''
-          }
-          if (buffer.length > 65536) buffer = buffer.slice(-1024)
+  edgeHost: string,
+  porta: number
+): Promise<boolean> {
+  const upload =
+    `/cgi-bin/configManager.cgi?action=setConfig&PictureHttpUpload.Enable=true` +
+    `&PictureHttpUpload.UploadServerList[0].Address=${edgeHost}` +
+    `&PictureHttpUpload.UploadServerList[0].Port=${porta}` +
+    `&PictureHttpUpload.UploadServerList[0].Uploadpath=/notification`
+  const modo =
+    `/cgi-bin/configManager.cgi?action=setConfig&Intelbras_ModeCfg.DeviceMode=2` +
+    `&Intelbras_ModeCfg.KeepAlive.Enable=true&Intelbras_ModeCfg.KeepAlive.Interval=120` +
+    `&Intelbras_ModeCfg.KeepAlive.Path=/keepalive&Intelbras_ModeCfg.KeepAlive.TimeOut=2000` +
+    `&Intelbras_ModeCfg.RemoteCheckTimeout=5`
+  try {
+    const r1 = await digestFetch(dev, upload)
+    const r2 = await digestFetch(dev, modo)
+    return r1.ok && r2.ok
+  } catch (err) {
+    log.warn({ dev: dev.nome, err: (err as Error).message }, 'falha ao provisionar Event Server')
+    return false
+  }
+}
+
+/** Extrai o UserID de um evento BioT (JSON ou multipart/texto). */
+export function extrairUserIdEvento(corpo: string): string | null {
+  try {
+    const json = JSON.parse(corpo)
+    const achar = (o: any): string | null => {
+      if (o === null || typeof o !== 'object') return null
+      for (const [k, v] of Object.entries(o)) {
+        if (['UserID', 'userID', 'userId', 'CardNo'].includes(k) && (typeof v === 'string' || typeof v === 'number'))
+          return String(v)
+        if (typeof v === 'object') {
+          const r = achar(v)
+          if (r) return r
         }
-      } catch (err) {
-        log.warn({ dev: dev.nome, err: (err as Error).message }, 'stream de eventos caiu; reconectando em 5s')
-        await new Promise((r) => setTimeout(r, 5000))
       }
+      return null
     }
+    const r = achar(json)
+    if (r) return r
+  } catch {
+    /* não é JSON */
   }
-  conectar()
-  return () => {
-    ativo = false
-  }
+  const m = corpo.match(/["']?UserID["']?\s*[:=]\s*["']?(\w+)/i) ?? corpo.match(/["']?CardNo["']?\s*[:=]\s*["']?(\w+)/i)
+  return m ? m[1] : null
 }

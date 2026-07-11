@@ -9,8 +9,8 @@ sem internet (modo degradado), e ressincroniza quando a conexão volta.
 | Função | Como |
 |---|---|
 | Acesso veicular (LPR) | Recebe o push ANPR da câmera (HTTP), consulta `POST /edge/lpr` e abre a cancela (relé via HTTP API Intelbras) quando liberado |
-| Acesso facial | Assina o stream de eventos do controlador (`eventManager attach`) e registra cada passagem na Cloud (`POST /edge/validate-access`) |
-| Cadastro vivo | Consome `GET /edge/sync/comandos` (aprovações → inserir/remover usuário e foto facial no equipamento) com ack |
+| Acesso facial | Recebe o push do **Event Server BioT** (`/notification` + `/keepalive`), mapeia o `UserID` do equipamento para a pessoa e registra na Cloud (`POST /edge/validate-access`) |
+| Cadastro vivo | Consome `GET /edge/sync/comandos` e aplica no equipamento via **API BioT V2 JSON** (`AccessUser`/`AccessFace` insertMulti) com ack; o mapa `pessoa_id ↔ UserID` fica no `edge.state.json` |
 | Modo degradado | Cache local de placas de moradores ativos (`GET /edge/sync/placas`) + fila de eventos offline (`edge.state.json`), reenviada por `POST /edge/sync/eventos` |
 | Licença | `POST /edge/validate-license` no boot com fingerprint do hardware (hostname + MACs) |
 | Saúde | Heartbeat por dispositivo a cada ciclo de sync |
@@ -55,9 +55,12 @@ netsh advfirewall firewall add rule name="Condar Edge ANPR" dir=in action=allow 
 decisão é da plataforma. O relé da cancela pode ficar na própria câmera ou na
 controladora.
 
-**Controlador facial**: cadastre o IP/usuário/senha no `edge.config.json`
-(tipo `facial`). O Edge assina os eventos e sincroniza os cadastros aprovados.
-A base facial fica no equipamento — decide offline sozinho.
+**Controlador facial (BioT)**: cadastre o IP/usuário/senha no
+`edge.config.json` (tipo `facial`) e rode `npm run provisionar` — o Edge
+configura o Event Server do equipamento (eventos → `http://<edge>:8090/notification`,
+keepalive em `/keepalive`) sem tocar na interface web. A base facial fica no
+equipamento — decide offline sozinho; cada acesso é empurrado ao Edge e
+registrado na Cloud.
 
 Cada equipamento precisa existir em **Áreas e dispositivos** no app de
 administração (tipo e área corretos); use o `dispositivo_id` no config.

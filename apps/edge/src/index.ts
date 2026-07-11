@@ -3,7 +3,7 @@ import pino from 'pino'
 import { carregarConfig, type DispositivoEdge } from './config.js'
 import { CloudClient, fingerprint } from './cloud.js'
 import { extrairPlaca } from './anpr.js'
-import { abrirAcesso, aplicarComando, assinarEventosFacial } from './intelbras.js'
+import { abrirAcesso, aplicarComando, extrairUserIdEvento } from './intelbras.js'
 import { Store } from './store.js'
 
 const log = pino({ name: 'edge' })
@@ -51,31 +51,29 @@ async function main() {
   // 2) Listener dos pushes ANPR das câmeras LPR
   const porIp = new Map(cfg.dispositivos.map((d) => [d.ip, d]))
   const lprDevs = cfg.dispositivos.filter((d) => d.tipo === 'lpr')
+  const facialDevs = cfg.dispositivos.filter((d) => d.tipo === 'facial')
   const server = createServer((req, res) => {
     let corpo = ''
     req.on('data', (c) => (corpo += c))
     req.on('end', async () => {
       res.writeHead(200).end('OK')
-      const placa = extrairPlaca(corpo)
-      if (!placa) return
       const origem = (req.socket.remoteAddress ?? '').replace('::ffff:', '')
-      const dev = porIp.get(origem) ?? lprDevs[0]
-      if (!dev) return log.warn({ origem, placa }, 'push ANPR sem dispositivo LPR configurado')
-      await decidirLpr(dev, placa)
-    })
-  })
-  server.listen(cfg.lpr_listen_port, () =>
-    log.info({ porta: cfg.lpr_listen_port, cameras: lprDevs.length }, 'listener ANPR no ar')
-  )
+      const url = req.url ?? '/'
 
-  // 3) Eventos dos controladores faciais → validação/registro na Cloud
-  const paradas: Array<() => void> = []
-  for (const dev of cfg.dispositivos.filter((d) => d.tipo === 'facial')) {
-    paradas.push(
-      assinarEventosFacial(dev, async (pessoaId) => {
+      // keepalive do modo online do BioT
+      if (url.startsWith('/keepalive')) return
+
+      // evento de acesso do controlador facial (Event Server BioT)
+      if (url.startsWith('/notification')) {
+        const userId = extrairUserIdEvento(corpo)
+        if (!userId) return
+        const dev = porIp.get(origem) ?? facialDevs[0]
+        if (!dev) return log.warn({ origem, userId }, 'evento facial sem dispositivo configurado')
+        const pessoaId = store.pessoaDeUserId(userId)
+        if (!pessoaId) return log.warn({ dev: dev.nome, userId }, 'UserID sem pessoa mapeada')
         try {
           const r = await cloud.validarFacial(dev.dispositivo_id, pessoaId)
-          log.info({ dev: dev.nome, pessoaId, resultado: r.resultado }, 'facial registrado na Cloud')
+          log.info({ dev: dev.nome, userId, resultado: r.resultado }, 'facial registrado na Cloud')
         } catch {
           store.enfileirarEvento({
             dispositivo_id: dev.dispositivo_id,
@@ -85,10 +83,22 @@ async function main() {
             metodo: 'facial',
             ocorrido_em: new Date().toISOString(),
           })
+          log.warn({ dev: dev.nome, userId }, 'facial enfileirado (Cloud offline)')
         }
-      })
-    )
-  }
+        return
+      }
+
+      // push ANPR das câmeras LPR (path /anpr ou default)
+      const placa = extrairPlaca(corpo)
+      if (!placa) return
+      const dev = porIp.get(origem) ?? lprDevs[0]
+      if (!dev || dev.tipo !== 'lpr') return log.warn({ origem, placa }, 'push ANPR sem dispositivo LPR configurado')
+      await decidirLpr(dev, placa)
+    })
+  })
+  server.listen(cfg.lpr_listen_port, () =>
+    log.info({ porta: cfg.lpr_listen_port, lpr: lprDevs.length, faciais: facialDevs.length }, 'listener HTTP no ar (ANPR + eventos BioT)')
+  )
 
   // 4) Loop de sincronização: comandos → equipamentos, fila offline → Cloud,
   //    heartbeat por dispositivo
@@ -102,7 +112,8 @@ async function main() {
       try {
         const comandos = await cloud.buscarComandos(dev.dispositivo_id)
         for (const cmd of comandos) {
-          const ok = dev.tipo === 'facial' ? await aplicarComando(dev, cmd) : true
+          const userId = cmd.payload?.pessoa_id ? store.userIdDe(cmd.payload.pessoa_id) : ''
+          const ok = dev.tipo === 'facial' ? await aplicarComando(dev, cmd, userId) : true
           await cloud.ackComando(cmd.id, ok)
           log.info({ dev: dev.nome, tipo: cmd.tipo_comando, ok }, 'comando processado')
         }
@@ -128,7 +139,6 @@ async function main() {
   const encerrar = () => {
     log.info('encerrando Edge')
     clearInterval(timer)
-    paradas.forEach((p) => p())
     server.close(() => process.exit(0))
     setTimeout(() => process.exit(0), 3000)
   }

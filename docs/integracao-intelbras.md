@@ -85,7 +85,10 @@ comandos da Cloud:
 
 - `GET /edge/sync/comandos` — o Edge consome a `sync_queue`
   (criar/atualizar/remover pessoa, foto facial, revogações) e aplica no
-  equipamento via SDK/API Intelbras.
+  equipamento via API BioT V2 (`AccessUser.cgi`/`AccessFace.cgi` insertMulti,
+  Digest MD5); o `UserID` numérico do BioT é mapeado do `pessoa_id`.
+- Eventos de acesso chegam pelo **Event Server** do BioT (push HTTP para o
+  Edge, `npm run provisionar` configura o equipamento).
 - `POST /edge/validate-access` — a cada passagem o Edge valida na Cloud
   (liberações por área/agendamento) e registra o evento.
 - Aprovações do Cadastro Vivo geram comandos automaticamente

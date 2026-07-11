@@ -17,14 +17,18 @@ export interface EventoPendente {
 interface Estado {
   placas: Record<string, string> // placa -> pessoa_id
   eventos_pendentes: EventoPendente[]
+  // BioT exige UserID numérico; mapeamos cada pessoa_id (uuid) para um
+  // número incremental estável deste Edge
+  user_ids: Record<string, string> // pessoa_id -> UserID
+  proximo_user_id: number
 }
 
 export class Store {
-  private estado: Estado = { placas: {}, eventos_pendentes: [] }
+  private estado: Estado = { placas: {}, eventos_pendentes: [], user_ids: {}, proximo_user_id: 1 }
   constructor(private caminho = 'edge.state.json') {
     if (existsSync(this.caminho)) {
       try {
-        this.estado = JSON.parse(readFileSync(this.caminho, 'utf8'))
+        this.estado = { user_ids: {}, proximo_user_id: 1, ...JSON.parse(readFileSync(this.caminho, 'utf8')) }
       } catch {
         /* estado corrompido: recomeça vazio */
       }
@@ -57,5 +61,21 @@ export class Store {
   limparEventos(qtd: number) {
     this.estado.eventos_pendentes.splice(0, qtd)
     this.salvar()
+  }
+
+  /** UserID BioT da pessoa; cria um novo número na primeira vez. */
+  userIdDe(pessoaId: string): string {
+    if (!this.estado.user_ids[pessoaId]) {
+      this.estado.user_ids[pessoaId] = String(this.estado.proximo_user_id++)
+      this.salvar()
+    }
+    return this.estado.user_ids[pessoaId]
+  }
+
+  pessoaDeUserId(userId: string): string | null {
+    for (const [pessoa, uid] of Object.entries(this.estado.user_ids)) {
+      if (uid === userId) return pessoa
+    }
+    return null
   }
 }

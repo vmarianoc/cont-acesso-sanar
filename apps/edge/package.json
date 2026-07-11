@@ -7,7 +7,8 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "build": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "provisionar": "tsx src/provisionar.ts"
   },
   "dependencies": {
     "pino": "^9.0.0",
