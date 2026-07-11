@@ -136,6 +136,9 @@ produção e nos apps nativos**) e `VITE_TENANT_ID` (opcional, pré-preenche o l
 
 ---
 
+> **Instalação rápida em produção**: `deploy/` tem nginx + systemd + `bootstrap.sh`
+> prontos para condar.app — veja [`deploy/README.md`](deploy/README.md).
+
 ## 5. Implantação em produção
 
 ### 5.1 Topologia recomendada
