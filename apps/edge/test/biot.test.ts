@@ -17,6 +17,10 @@ describe('eventos do Event Server BioT', () => {
     expect(extrairUserIdEvento('{"CardNo":"1B11"}')).toBe('1B11')
   })
 
+  it('QR de convite chega como CardNo e mantém o formato V-…', () => {
+    expect(extrairUserIdEvento('{"CardNo":"V-ABC123DEF456GHI78"}')).toBe('V-ABC123DEF456GHI78')
+  })
+
   it('retorna null sem identificação', () => {
     expect(extrairUserIdEvento('{"heartbeat":true}')).toBeNull()
   })

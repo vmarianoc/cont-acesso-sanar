@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { criarLiberacao, validarAcessoFacial, validarAcessoPlaca, registrarEventoAcesso } from '../services/acessoService.js'
+import { criarLiberacao, validarAcessoFacial, validarAcessoPlaca, validarQrVisitante, registrarEventoAcesso } from '../services/acessoService.js'
 import { registrarAuditoria } from '../services/auditoriaService.js'
 
 const PERFIS_GESTAO = new Set(['admin', 'sindico', 'superadmin', 'porteiro'])
@@ -93,6 +93,53 @@ const acessoRoutes: FastifyPluginAsync = async (fastify) => {
       return validacao
     })
 
+    return reply.status(200).send({ data: resultado })
+  })
+
+  /**
+   * QR de convite lido pelo facial Intelbras: o Edge recebe o push do
+   * leitor e valida aqui; se liberado, abre a porta. A portaria vê em tempo
+   * real quem liberou e os dados do visitante.
+   */
+  fastify.post('/edge/qr', async (request, reply) => {
+    const QrBody = z.object({
+      schema_name: z.string(),
+      dispositivo_id: z.string().uuid(),
+      qr_token: z.string().min(6).max(40),
+    })
+    const parsed = QrBody.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        erro: { codigo: 'DADOS_INVALIDOS', mensagem: parsed.error.errors[0].message },
+      })
+    }
+    const { schema_name, dispositivo_id, qr_token } = parsed.data
+    const resultado = await fastify.withTenant(schema_name, async (sql) => {
+      const validacao = await validarQrVisitante(sql, qr_token)
+      await registrarEventoAcesso(sql, {
+        dispositivo_id,
+        resultado: validacao.resultado,
+        metodo: 'qrcode',
+      })
+      return validacao
+    })
+    // painel da portaria mostra na hora quem chegou e quem liberou
+    await fastify.publishRt(schema_name, ['perfil:porteiro', 'perfil:admin'], {
+      tipo: 'visitante_qr',
+      dados: resultado as any,
+    })
+    return reply.status(200).send({ data: resultado })
+  })
+
+  /** Validação manual do convite pelo porteiro (digitar/escanear no painel). */
+  fastify.post('/visitantes/validar-qr', async (request, reply) => {
+    const parsed = z.object({ qr_token: z.string().min(6).max(40) }).safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Informe o código do convite' },
+      })
+    }
+    const resultado = await validarQrVisitante(request.tenantDb!, parsed.data.qr_token)
     return reply.status(200).send({ data: resultado })
   })
 

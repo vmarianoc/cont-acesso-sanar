@@ -152,12 +152,14 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
 
     const { nome, documento, unidade_id, valido_de, valido_ate } = parsed.data
     const id = uuidv4()
+    // QR de convite: o visitante apresenta no leitor facial da portaria
+    const qrToken = `V-${uuidv4().replace(/-/g, '').slice(0, 20).toUpperCase()}`
 
     const rows = await request.tenantDb!.unsafe(
-      `INSERT INTO visitantes (id, nome, documento, unidade_id, pre_autorizado_por, valido_de, valido_ate)
-       SELECT $1, $2, $3, $4, pessoa_id, $5, $6 FROM usuarios_tenant WHERE id = $7
+      `INSERT INTO visitantes (id, nome, documento, unidade_id, pre_autorizado_por, valido_de, valido_ate, qr_token)
+       SELECT $1, $2, $3, $4, pessoa_id, $5, $6, $8 FROM usuarios_tenant WHERE id = $7
        RETURNING *`,
-      [id, nome, documento ?? null, unidade_id, valido_de, valido_ate, userId]
+      [id, nome, documento ?? null, unidade_id, valido_de, valido_ate, userId, qrToken]
     )
 
     if (rows[0]) {

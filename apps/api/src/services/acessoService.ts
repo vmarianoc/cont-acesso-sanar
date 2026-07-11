@@ -160,3 +160,48 @@ export async function validarAcessoPlaca(
   })
   return { ...validacao, placa, pessoa_id: veiculo.pessoa_id, pessoa_nome: veiculo.nome }
 }
+
+export interface ValidacaoQr {
+  resultado: 'liberado' | 'negado'
+  motivo: string
+  visitante?: {
+    id: string
+    nome: string
+    documento: string | null
+    unidade: string | null
+    autorizado_por: string | null
+    valido_de: string
+    valido_ate: string
+  }
+}
+
+/**
+ * Valida o QR de convite do visitante (lido pelo facial Intelbras via Edge
+ * ou digitado pelo porteiro). Sempre devolve os dados do visitante e de quem
+ * liberou quando o token existe — a portaria confere na tela.
+ */
+export async function validarQrVisitante(sql: Sql, qrToken: string): Promise<ValidacaoQr> {
+  const [v] = await sql.unsafe(
+    `SELECT v.id, v.nome, v.documento, v.valido_de, v.valido_ate, v.usado,
+            u.numero AS unidade, p.nome AS autorizado_por
+     FROM visitantes v
+     LEFT JOIN unidades u ON u.id = v.unidade_id
+     LEFT JOIN pessoas p ON p.id = v.pre_autorizado_por
+     WHERE v.qr_token = $1`,
+    [qrToken.trim().toUpperCase()]
+  )
+  if (!v) return { resultado: 'negado', motivo: 'QR_DESCONHECIDO' }
+  const visitante = {
+    id: v.id,
+    nome: v.nome,
+    documento: v.documento,
+    unidade: v.unidade,
+    autorizado_por: v.autorizado_por,
+    valido_de: v.valido_de,
+    valido_ate: v.valido_ate,
+  }
+  const agora = new Date()
+  if (agora < new Date(v.valido_de)) return { resultado: 'negado', motivo: 'FORA_DA_JANELA', visitante }
+  if (agora > new Date(v.valido_ate)) return { resultado: 'negado', motivo: 'CONVITE_EXPIRADO', visitante }
+  return { resultado: 'liberado', motivo: 'CONVITE_VALIDO', visitante }
+}

@@ -69,6 +69,18 @@ async function main() {
         if (!userId) return
         const dev = porIp.get(origem) ?? facialDevs[0]
         if (!dev) return log.warn({ origem, userId }, 'evento facial sem dispositivo configurado')
+        // QR de convite de visitante: o leitor devolve o conteúdo lido
+        // (prefixo V-) no lugar do UserID numérico
+        if (/^V-[A-Z0-9]{10,}$/i.test(userId)) {
+          try {
+            const r = await cloud.validarQr(dev.dispositivo_id, userId)
+            log.info({ dev: dev.nome, qr: userId, resultado: r.resultado, visitante: r.visitante?.nome }, 'QR de visitante')
+            if (r.resultado === 'liberado') await abrirAcesso(dev)
+          } catch (err) {
+            log.warn({ err: (err as Error).message }, 'QR sem Cloud — negado (fail-safe p/ visitantes)')
+          }
+          return
+        }
         const pessoaId = store.pessoaDeUserId(userId)
         if (!pessoaId) return log.warn({ dev: dev.nome, userId }, 'UserID sem pessoa mapeada')
         try {

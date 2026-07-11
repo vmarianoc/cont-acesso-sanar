@@ -83,6 +83,13 @@ export default function LoginPage() {
         >
           Esqueci minha senha
         </button>
+        <button
+          type="button"
+          onClick={() => navigate('/registro')}
+          className="w-full text-sm font-semibold text-brand-600"
+        >
+          Primeiro acesso? Criar conta
+        </button>
       </form>
     </div>
   )

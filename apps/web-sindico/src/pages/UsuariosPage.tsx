@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppScreen, Header, Button, TextField, Badge, iniciais } from '@condar/ui'
 import {
@@ -9,6 +9,7 @@ import {
   gerarConvite,
   type Usuario,
 } from '../api/sindico'
+import client from '../api/client'
 import BottomNav from '../components/BottomNav'
 
 const PERFIS = [
@@ -19,6 +20,39 @@ const PERFIS = [
 ] as const
 
 const FORM_INICIAL = { email: '', senha: '', perfil: 'morador' as const, pessoa_id: '' }
+
+
+function DispararCodigos() {
+  const [pendentes, setPendentes] = useState<number | null>(null)
+  const [status, setStatus] = useState<string | null>(null)
+  useEffect(() => {
+    client.get('/registro/pendentes').then((r) => setPendentes(r.data.data.pendentes)).catch(() => {})
+  }, [])
+  const disparar = async () => {
+    if (!confirm(`Enviar código de cadastro por e-mail para ${pendentes} morador(es) da lista?`)) return
+    setStatus('Enviando…')
+    try {
+      const r = await client.post('/registro/disparar', {})
+      setStatus(`✅ ${r.data.data.enviados} e-mail(s) enviados`)
+      setPendentes(0)
+    } catch (err: any) {
+      setStatus(err.response?.data?.erro?.mensagem ?? 'Falha no disparo')
+    }
+  }
+  if (pendentes === null || pendentes === 0) return status ? <p className="text-sm text-gray-500 px-1">{status}</p> : null
+  return (
+    <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+      <span className="text-sm text-gray-700">
+        <b>{pendentes}</b> morador(es) da lista ainda sem conta no app
+      </span>
+      <button onClick={disparar}
+        className="rounded-xl bg-brand-600 text-white px-4 py-2 text-sm font-semibold whitespace-nowrap">
+        Disparar códigos de cadastro
+      </button>
+      {status && <span className="text-xs text-gray-500">{status}</span>}
+    </div>
+  )
+}
 
 export default function UsuariosPage() {
   const qc = useQueryClient()
@@ -93,6 +127,8 @@ export default function UsuariosPage() {
         }
       />
 
+
+      <div className="px-5 mt-4"><DispararCodigos /></div>
       <div className="px-5 mt-4 space-y-3">
         {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
 

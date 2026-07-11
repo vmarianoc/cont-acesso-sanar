@@ -55,6 +55,12 @@ netsh advfirewall firewall add rule name="Condar Edge ANPR" dir=in action=allow 
 decisão é da plataforma. O relé da cancela pode ficar na própria câmera ou na
 controladora.
 
+**QR de convite de visitante**: o morador gera o QR no app; o visitante
+apresenta no leitor do controlador. O conteúdo lido (prefixo `V-`) chega ao
+Edge pelo `/notification` e é validado na Cloud (`POST /edge/qr`) — liberado
+dentro da janela, negado fora dela, sempre auditado. Habilite a leitura de
+QR no equipamento (BioT: `configManager` → `QRCodeDecode`, ver collection).
+
 **Controlador facial (BioT)**: cadastre o IP/usuário/senha no
 `edge.config.json` (tipo `facial`) e rode `npm run provisionar` — o Edge
 configura o Event Server do equipamento (eventos → `http://<edge>:8090/notification`,

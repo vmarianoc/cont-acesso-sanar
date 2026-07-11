@@ -3,6 +3,9 @@ import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
 import { enfileirarComandoFacial } from '../services/syncEdgeService.js'
+import { hashPassword } from '../services/authService.js'
+import { enviarEmail } from '../services/mailService.js'
+import { createHash, randomBytes } from 'node:crypto'
 import { enqueueNotificacao } from '../workers/notificacoesQueue.js'
 import { criarLiberacao } from '../services/acessoService.js'
 
@@ -122,12 +125,53 @@ const aprovacoesRoutes: FastifyPluginAsync = async (fastify) => {
       )
 
       if (status === 'aprovado') {
-        const tipoComando = comandoDoTipo(atualizada.tipo)
-        if (tipoComando && atualizada.pessoa_id) {
-          await enfileirarComandoFacial(db, tipoComando, atualizada.pessoa_id, {
-            aprovacao_id: id,
-            unidade_id: atualizada.unidade_id,
-          })
+        // Solicitação de cadastro (implantação): cria a pessoa e o usuário e
+        // envia o convite para o morador definir a senha.
+        if (atualizada.tipo === 'novo_morador') {
+          const d = (typeof atualizada.dados === 'string' ? JSON.parse(atualizada.dados) : atualizada.dados) ?? {}
+          const pessoaId = uuidv4()
+          await db.unsafe(
+            `INSERT INTO pessoas (id, nome, cpf, email, telefone, tipo) VALUES ($1, $2, $3, $4, $5, 'morador')`,
+            [pessoaId, d.nome, d.cpf ?? null, d.email, d.telefone ?? null]
+          )
+          const usuarioId = uuidv4()
+          await db.unsafe(
+            `INSERT INTO usuarios_tenant (id, pessoa_id, email, senha_hash, perfil)
+             VALUES ($1, $2, $3, $4, 'morador')`,
+            [usuarioId, pessoaId, d.email, await hashPassword(randomBytes(16).toString('hex'))]
+          )
+          const tokenConvite = randomBytes(24).toString('hex')
+          await db.unsafe(
+            `INSERT INTO tokens_conta (id, usuario_id, tipo, token_hash, expira_em)
+             VALUES ($1, $2, 'convite', $3, NOW() + INTERVAL '7 days')`,
+            [uuidv4(), usuarioId, createHash('sha256').update(tokenConvite).digest('hex')]
+          )
+          await enviarEmail(
+            {
+              para: d.email,
+              assunto: 'Cadastro aprovado — defina sua senha no condar',
+              texto:
+                `Olá, ${d.nome}!
+
+Seu cadastro foi aprovado pelo condomínio.
+` +
+                `Defina sua senha em: https://morador.condar.app/convite?token=${tokenConvite}
+
+` +
+                `O link vale por 7 dias.`,
+            },
+            request.log
+          )
+          atualizada.pessoa_id = pessoaId
+          await enfileirarComandoFacial(db, 'pessoa.criar', pessoaId, { aprovacao_id: id })
+        } else {
+          const tipoComando = comandoDoTipo(atualizada.tipo)
+          if (tipoComando && atualizada.pessoa_id) {
+            await enfileirarComandoFacial(db, tipoComando, atualizada.pessoa_id, {
+              aprovacao_id: id,
+              unidade_id: atualizada.unidade_id,
+            })
+          }
         }
       }
 

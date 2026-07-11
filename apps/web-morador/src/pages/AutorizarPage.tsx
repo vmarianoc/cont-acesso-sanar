@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppScreen, Header, Button, iniciais } from '@condar/ui'
 import { fetchSolicitacoes, decidirSolicitacao } from '../api/morador'
 import BottomNav from '../components/BottomNav'
+import ConvidarVisitante from '../components/ConvidarVisitante'
 
 export default function AutorizarPage() {
   const qc = useQueryClient()
@@ -81,6 +82,7 @@ export default function AutorizarPage() {
             </div>
           ))}
         </div>
+        <ConvidarVisitante />
       </div>
 
       <BottomNav />

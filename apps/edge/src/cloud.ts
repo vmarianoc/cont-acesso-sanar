@@ -76,6 +76,10 @@ export class CloudClient {
     })
   }
 
+  validarQr(dispositivo_id: string, qr_token: string) {
+    return this.req('POST', '/edge/qr', { schema_name: this.cfg.schema_name, dispositivo_id, qr_token })
+  }
+
   buscarPlacas(): Promise<Record<string, string>> {
     return this.req('GET', `/edge/sync/placas?schema_name=${this.cfg.schema_name}`)
   }

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { PushRegistrar } from '@condar/ui'
 import LoginPage from './pages/LoginPage'
 import RecuperarPage from './pages/RecuperarPage'
+import RegistroPage from './pages/RegistroPage'
 import HomePage from './pages/HomePage'
 import AutorizarPage from './pages/AutorizarPage'
 import ReservasPage from './pages/ReservasPage'
@@ -28,6 +29,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/recuperar" element={<RecuperarPage />} />
+        <Route path="/registro" element={<RegistroPage />} />
         <Route path="/convite" element={<RecuperarPage convite />} />
         <Route path="/" element={<RequireAuth><HomePage /></RequireAuth>} />
         <Route path="/acesso" element={<RequireAuth><AutorizarPage /></RequireAuth>} />
