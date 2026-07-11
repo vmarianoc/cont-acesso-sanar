@@ -106,3 +106,49 @@ describe('acesso veicular por LPR (placa)', () => {
     expect(res.json().data.motivo).toBe('DISPOSITIVO_DESCONHECIDO')
   })
 })
+
+describe('cache de placas para o Edge (modo degradado)', () => {
+  // reusa a infra do describe acima via novo tenant leve
+  let app: FastifyInstance
+  const sql = makeSql()
+  let t: TestTenant
+
+  beforeAll(async () => {
+    t = await createTestTenant(sql, 'lprcache')
+    app = await buildApp()
+    await app.ready()
+    await sql.unsafe(`SET search_path TO ${t.schemaName}, public`)
+    await sql.unsafe(
+      `INSERT INTO vinculos_unidade (id, pessoa_id, unidade_id, tipo_vinculo, ativo, principal)
+       VALUES ($1, $2, $3, 'proprietario', true, true)`,
+      [uuidv4(), t.morador.pessoaId, t.unidadeId]
+    )
+    await sql.unsafe(
+      `INSERT INTO veiculos (id, pessoa_id, placa, ativo) VALUES ($1, $2, 'CACHE01', true)`,
+      [uuidv4(), t.morador.pessoaId]
+    )
+  })
+
+  afterAll(async () => {
+    await app.close()
+    await dropTestTenant(sql, t)
+    await sql.end()
+  })
+
+  it('lista placa→pessoa de moradores ativos', async () => {
+    const token = (
+      await app.inject({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email: t.porteiro.email, senha: t.porteiro.senha, tenant_id: t.tenantId },
+      })
+    ).json().data.token
+    const res = await app.inject({
+      method: 'GET',
+      url: `/edge/sync/placas?schema_name=${t.schemaName}`,
+      headers: { authorization: `Bearer ${token}` },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().data.CACHE01).toBe(t.morador.pessoaId)
+  })
+})

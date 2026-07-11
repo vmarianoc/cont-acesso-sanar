@@ -25,7 +25,7 @@ inclui o [progresso da implementação](docs/roadmap/progresso.md) e o guia de
                                         │ /edge/* (sync, validate-license,
                                         │          validate-access)
                         ┌───────────────┴────────────┐
-                        │  Edge Service (guarita)     │  ← fora deste repo
+                        │  Edge Service (guarita)     │  ← apps/edge (Windows)
                         │  hardware Intelbras (facial │
                         │  + câmeras LPR)             │
                         └─────────────────────────────┘
@@ -34,6 +34,7 @@ inclui o [progresso da implementação](docs/roadmap/progresso.md) e o guia de
 | Workspace | Descrição | Porta dev |
 |---|---|---|
 | `apps/api` | Cloud API (Fastify + Postgres + Redis + BullMQ) | 3000 |
+| `apps/edge` | Edge Service da guarita (Intelbras facial + LPR, Windows) | 8090 (ANPR) |
 | `apps/web-portaria` | Console da portaria (desktop-first, PWA) | 5173 |
 | `apps/web-morador` | App do morador (mobile-first, PWA + Capacitor) | 5174 |
 | `apps/web-sindico` | App do síndico — gestão/aprovações/comunicados | 5175 |
@@ -266,7 +267,7 @@ Detalhes (release/assinatura/Play Store/iOS): [`docs/apps-nativos.md`](docs/apps
 
 ## 7. Integração com o Edge (guarita)
 
-O Edge Service (Windows/.NET ou Go — fora deste repo) integra o hardware
+O Edge Service (**`apps/edge`**, Node/TS rodando como serviço do Windows via NSSM) integra o hardware
 **Intelbras** (controladores de acesso facial + câmeras LPR) à Cloud — guia
 completo em [`docs/integracao-intelbras.md`](docs/integracao-intelbras.md).
 Endpoints consumidos:

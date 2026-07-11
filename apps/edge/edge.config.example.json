@@ -1,0 +1,29 @@
+{
+  "cloud_url": "https://api.seudominio.com.br/api",
+  "tenant_id": "<uuid do tenant>",
+  "schema_name": "tenant_<uuid com underscores>",
+  "license_key": "<license_key da licença do condomínio>",
+  "email": "edge@condominio.com.br",
+  "senha": "<senha do usuário do Edge (perfil porteiro)>",
+  "lpr_listen_port": 8090,
+  "heartbeat_seg": 60,
+  "sync_seg": 15,
+  "dispositivos": [
+    {
+      "dispositivo_id": "<uuid do dispositivo tipo lpr no admin>",
+      "tipo": "lpr",
+      "nome": "LPR Entrada",
+      "ip": "192.168.1.108",
+      "usuario": "admin",
+      "senha": "<senha da câmera>"
+    },
+    {
+      "dispositivo_id": "<uuid do dispositivo tipo leitor_facial no admin>",
+      "tipo": "facial",
+      "nome": "Facial Portaria",
+      "ip": "192.168.1.201",
+      "usuario": "admin",
+      "senha": "<senha do controlador>"
+    }
+  ]
+}

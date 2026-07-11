@@ -7,7 +7,7 @@ const EventoBody = z.object({
   pessoa_id: z.string().uuid().optional(),
   tipo: z.string(),
   resultado: z.enum(['liberado', 'negado', 'erro']),
-  metodo: z.enum(['facial', 'qrcode', 'biometria', 'manual']),
+  metodo: z.enum(['facial', 'qrcode', 'biometria', 'manual', 'placa']),
   foto_url: z.string().url().optional(),
   ocorrido_em: z.string().datetime(),
 })
@@ -109,6 +109,58 @@ const edgeSyncRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     return reply.status(200).send({ data: rows })
+  })
+
+  // Cache do modo degradado: placas de veículos ativos de moradores ativos
+  fastify.get('/edge/sync/placas', async (request, reply) => {
+    const query = request.query as { schema_name?: string }
+    if (!query.schema_name) {
+      return reply.status(400).send({
+        erro: { codigo: 'PARAMS_FALTANDO', mensagem: 'schema_name é obrigatório' },
+      })
+    }
+    const rows = await fastify.withTenant(query.schema_name, async (sql) => {
+      return sql.unsafe(
+        `SELECT v.placa, v.pessoa_id FROM veiculos v
+         JOIN pessoas p ON p.id = v.pessoa_id
+         JOIN vinculos_unidade vu ON vu.pessoa_id = p.id AND vu.ativo = true
+         WHERE v.ativo = true AND p.ativo = true`
+      )
+    })
+    const placas: Record<string, string> = {}
+    for (const r of rows as any[]) placas[r.placa] = r.pessoa_id
+    return reply.status(200).send({ data: placas })
+  })
+
+  // Ack do Edge: marca o comando como executado (ou incrementa tentativas em falha)
+  fastify.post('/edge/sync/comandos/:id/ack', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const parsed = z
+      .object({ schema_name: z.string(), sucesso: z.boolean().default(true) })
+      .safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        erro: { codigo: 'DADOS_INVALIDOS', mensagem: 'Informe schema_name' },
+      })
+    }
+    const rows = await fastify.withTenant(parsed.data.schema_name, async (sql) => {
+      if (parsed.data.sucesso) {
+        return sql.unsafe(
+          `UPDATE sync_queue SET executado = true, executado_em = NOW() WHERE id = $1 RETURNING id`,
+          [id]
+        )
+      }
+      return sql.unsafe(
+        `UPDATE sync_queue SET tentativas = tentativas + 1 WHERE id = $1 RETURNING id`,
+        [id]
+      )
+    })
+    if (rows.length === 0) {
+      return reply.status(404).send({
+        erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Comando não encontrado' },
+      })
+    }
+    return reply.status(200).send({ data: { ok: true } })
   })
 }
 

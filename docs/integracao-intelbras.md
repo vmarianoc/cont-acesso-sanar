@@ -2,8 +2,9 @@
 
 O primeiro condomínio em produção usa **controladores de acesso Intelbras**
 (facial/catraca/cancela) e **câmeras LPR Intelbras** para acesso veicular.
-Este documento descreve como o **Edge Service** (instalado na rede local do
-condomínio) integra esses equipamentos à Cloud API do condar.
+Este documento descreve como o **Edge Service** (`apps/edge`, instalado na rede
+local do condomínio como serviço do Windows) integra esses equipamentos à
+Cloud API do condar. Instalação e operação: `apps/edge/README.md`.
 
 ## Arquitetura
 
