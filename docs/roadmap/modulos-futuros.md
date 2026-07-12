@@ -142,6 +142,27 @@ Expansão do módulo de migração para suportar controladores Intelbras (iSentr
 
 ---
 
+## Administradora — recursos futuros
+
+**Fase 3 — plano ENTERPRISE**
+
+Funcionalidades adicionais para o perfil `administradora` (empresa que gerencia
+vários condomínios), além da visão multi-condomínio já disponível hoje.
+
+- **Notificações inteligentes**: alertas consolidados entre os condomínios da
+  carteira (inadimplência, ocorrências recorrentes, licença perto de vencer),
+  priorizados por urgência em vez de por condomínio.
+- **Gestão de contratos**: cadastro e acompanhamento de contratos com
+  fornecedores e prestadores de serviço por condomínio, com alertas de
+  renovação/vencimento.
+- **Gestão de compras**: cotação e acompanhamento de compras recorrentes
+  (materiais de limpeza, manutenção) com histórico por condomínio.
+- **Gestão de NF-e com DFe**: emissão e recebimento de notas fiscais
+  eletrônicas integradas à Distribuição de DF-e da SEFAZ, vinculadas às
+  despesas de cada condomínio.
+
+---
+
 ## Documentação relacionada
 
 - [Fase 1 — MVP](fase-1.md)

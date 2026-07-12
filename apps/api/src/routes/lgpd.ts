@@ -1,8 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { registrarAuditoria } from '../services/auditoriaService.js'
 import { enfileirarComandoFacial } from '../services/syncEdgeService.js'
-
-const PERFIS_GESTAO = new Set(['admin', 'sindico', 'superadmin'])
+import { PERFIS_GESTAO } from '../lib/perfis.js'
 
 /**
  * Direitos do titular (LGPD art. 18) e relatórios de gestão:

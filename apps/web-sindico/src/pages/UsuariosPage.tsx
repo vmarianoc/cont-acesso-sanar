@@ -17,6 +17,7 @@ const PERFIS = [
   { value: 'porteiro', label: 'Porteiro' },
   { value: 'sindico', label: 'Síndico' },
   { value: 'admin', label: 'Administrador' },
+  { value: 'administradora', label: 'Administradora (multi-condomínio)' },
 ] as const
 
 const FORM_INICIAL = { email: '', senha: '', perfil: 'morador' as const, pessoa_id: '' }

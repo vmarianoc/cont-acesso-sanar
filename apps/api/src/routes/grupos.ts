@@ -2,8 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
-
-const PERFIS_GESTAO = new Set(['admin', 'sindico', 'superadmin'])
+import { PERFIS_GESTAO } from '../lib/perfis.js'
 
 const CreateGrupoBody = z.object({
   nome: z.string().min(2),

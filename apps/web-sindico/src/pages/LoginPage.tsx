@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TextField, Button, ContasMultiplasError } from '@condar/ui'
 import { useAuth } from '../hooks/useAuth'
+import client from '../api/client'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -26,6 +27,12 @@ export default function LoginPage() {
         tenant_id: tenantId ?? tenantEscolhido,
         ...(form.mfa_code ? { mfa_code: form.mfa_code } : {}),
       })
+      try {
+        const r = await client.post('/auth/contas', { identificador: form.identificador, senha: form.senha })
+        localStorage.setItem('contas', JSON.stringify(r.data.data ?? []))
+      } catch {
+        localStorage.setItem('contas', '[]')
+      }
       navigate('/')
     } catch (err: any) {
       if (err instanceof ContasMultiplasError) {

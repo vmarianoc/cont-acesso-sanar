@@ -5,8 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { hashPassword } from '../services/authService.js'
 import { enviarEmail } from '../services/mailService.js'
 import { registrarAuditoria } from '../services/auditoriaService.js'
-
-const PERFIS_GESTAO = new Set(['admin', 'sindico', 'superadmin'])
+import { PERFIS_GESTAO } from '../lib/perfis.js'
 
 const EsqueciBody = z.object({
   email: z.string().email(),

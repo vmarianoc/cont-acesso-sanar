@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import Logo from '../components/Logo'
+import { AppScreen, Header, Button, Stat, Badge } from '@condar/ui'
+import BottomNav from '../components/BottomNav'
 import {
   preVisualizarImportacao,
   confirmarImportacao,
@@ -9,22 +9,17 @@ import {
   type ImportResultado,
 } from '../api/importacao'
 
-const PERFIS_PERMITIDOS = ['sindico', 'admin', 'superadmin']
-
 function mensagemErro(err: any): string {
   return err?.response?.data?.erro?.mensagem ?? 'Falha ao processar o arquivo'
 }
 
-export default function ImportarPage() {
+export default function ImportarUnidadesPage() {
   const navigate = useNavigate()
-  const { perfil } = useAuth()
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [resultado, setResultado] = useState<ImportResultado | null>(null)
   const [loading, setLoading] = useState<'preview' | 'confirm' | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  const permitido = perfil ? PERFIS_PERMITIDOS.includes(perfil) : false
 
   const reset = () => {
     setPreview(null)
@@ -66,61 +61,49 @@ export default function ImportarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-brand-700 px-4 py-2 flex items-center justify-between">
-        <Logo subtitle="Importar unidades" />
-        <button
-          onClick={() => navigate('/portaria')}
-          className="text-white/70 hover:text-white text-sm"
-        >
-          ← Voltar
-        </button>
-      </header>
+    <AppScreen bottomNav>
+      <Header
+        variant="tinta"
+        eyebrow="Gestão do condomínio"
+        title="Importar unidades"
+        right={
+          <button onClick={() => navigate('/unidades')} className="text-white/70 hover:text-white text-sm">
+            ← Voltar
+          </button>
+        }
+      />
 
-      <main className="max-w-4xl mx-auto p-6 space-y-6">
-        {!permitido && (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded-md">
-            Seu perfil não tem permissão para importar. Entre como síndico ou administrador.
+      <div className="px-5 mt-4 space-y-3">
+        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+          <div>
+            <p className="font-semibold text-gray-900">
+              Relatório do condomínio (PDF, CSV ou Excel)
+            </p>
+            <p className="text-sm text-gray-500 mt-1">
+              Envie o relatório "Contatos das unidades". A pré-visualização não grava nada — os
+              dados só são salvos ao confirmar.
+            </p>
           </div>
-        )}
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">
-            Importar relatório do condomínio (PDF, CSV ou Excel)
-          </h2>
-          <p className="text-sm text-gray-500 mb-4">
-            Envie o relatório "Contatos das unidades". A pré-visualização não grava nada — os
-            dados só são salvos ao confirmar.
-          </p>
 
           <div className="flex flex-wrap items-center gap-3">
             <input
               type="file"
               accept=".pdf,.csv,.xlsx,application/pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               onChange={onFile}
-              disabled={!permitido}
-              className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-brand-700 file:text-sm"
+              className="text-sm file:mr-3 file:rounded-xl file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-brand-700 file:text-sm"
             />
-            <button
-              onClick={handlePreview}
-              disabled={!file || !permitido || loading !== null}
-              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-            >
+            <Button onClick={handlePreview} disabled={!file || loading !== null}>
               {loading === 'preview' ? 'Lendo arquivo...' : 'Pré-visualizar'}
-            </button>
+            </Button>
           </div>
 
-          {error && (
-            <p className="mt-4 text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
         </div>
 
         {preview && (
-          <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+          <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
             <div>
-              <h3 className="text-base font-semibold text-gray-900">
-                Pré-visualização — {preview.condominio}
-              </h3>
+              <p className="font-semibold text-gray-900">Pré-visualização — {preview.condominio}</p>
               <p className="text-sm text-gray-500">Bloco: {preview.bloco}</p>
             </div>
 
@@ -132,7 +115,7 @@ export default function ImportarPage() {
             </div>
 
             {!preview.licenca.cabe ? (
-              <div className="bg-red-50 border border-red-200 text-red-800 text-sm p-3 rounded-md">
+              <div className="bg-red-50 border border-red-200 text-red-800 text-sm p-3 rounded-xl">
                 Esta importação excede o limite do plano{' '}
                 <strong>{preview.licenca.plano.toUpperCase()}</strong> (
                 {preview.licenca.limite_unidades} unidades). Atuais:{' '}
@@ -140,7 +123,7 @@ export default function ImportarPage() {
                 upgrade do plano para importar.
               </div>
             ) : (
-              <div className="bg-green-50 border border-green-200 text-green-800 text-sm p-3 rounded-md">
+              <div className="bg-green-50 border border-green-200 text-green-800 text-sm p-3 rounded-xl">
                 Dentro do limite do plano {preview.licenca.plano.toUpperCase()} (
                 {preview.licenca.novas_unidades} novas ·{' '}
                 {preview.licenca.limite_unidades ?? '∞'} permitidas).
@@ -181,40 +164,34 @@ export default function ImportarPage() {
               </p>
             </div>
 
-            <button
+            <Button
               onClick={handleConfirm}
               disabled={loading !== null || !preview.licenca.cabe}
               title={!preview.licenca.cabe ? 'Excede o limite do plano' : undefined}
-              className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+              className="w-full"
             >
               {loading === 'confirm' ? 'Importando...' : 'Confirmar importação'}
-            </button>
+            </Button>
           </div>
         )}
 
         {resultado && (
-          <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-            <h3 className="text-base font-semibold text-green-700">
+          <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
+            <p className="font-semibold text-green-700">
               Importação concluída — {resultado.condominio}
-            </h3>
+            </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Stat label="Unidades criadas" value={resultado.resultado.unidades_criadas} />
               <Stat label="Já existentes" value={resultado.resultado.unidades_existentes} />
               <Stat label="Pessoas criadas" value={resultado.resultado.pessoas_criadas} />
               <Stat label="Vínculos criados" value={resultado.resultado.vinculos_criados} />
             </div>
+            <Badge tone="green">concluído</Badge>
           </div>
         )}
-      </main>
-    </div>
-  )
-}
+      </div>
 
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-gray-50 rounded-md p-3">
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
-      <div className="text-xs text-gray-500">{label}</div>
-    </div>
+      <BottomNav />
+    </AppScreen>
   )
 }

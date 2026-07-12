@@ -4,7 +4,7 @@ import { authenticator } from 'otplib'
 import type { JwtPayload } from '../types/common.js'
 
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS ?? '12', 10)
-const MFA_PERFIS = new Set(['admin', 'sindico'])
+const MFA_PERFIS = new Set(['admin', 'sindico', 'administradora'])
 
 export async function hashPassword(plain: string): Promise<string> {
   return bcrypt.hash(plain, BCRYPT_ROUNDS)

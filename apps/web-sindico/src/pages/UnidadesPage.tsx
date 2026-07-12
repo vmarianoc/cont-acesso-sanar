@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppScreen, Header, Button, TextField, Badge, iniciais } from '@condar/ui'
 import {
@@ -154,6 +155,7 @@ function OcupantesDaUnidade({ unidade }: { unidade: Unidade }) {
 }
 
 export default function UnidadesPage() {
+  const navigate = useNavigate()
   const [busca, setBusca] = useState('')
   const [selecionada, setSelecionada] = useState<string | null>(null)
 
@@ -164,7 +166,19 @@ export default function UnidadesPage() {
 
   return (
     <AppScreen bottomNav>
-      <Header variant="tinta" eyebrow="Gestão do condomínio" title="Unidades" />
+      <Header
+        variant="tinta"
+        eyebrow="Gestão do condomínio"
+        title="Unidades"
+        right={
+          <button
+            onClick={() => navigate('/importar')}
+            className="bg-white/15 hover:bg-white/25 text-white text-sm px-3 py-1.5 rounded-xl"
+          >
+            Importar
+          </button>
+        }
+      />
 
       <div className="px-5 mt-4 space-y-3">
         <TextField

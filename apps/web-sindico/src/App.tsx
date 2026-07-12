@@ -7,6 +7,7 @@ import AprovacoesPage from './pages/AprovacoesPage'
 import LicencaPage from './pages/LicencaPage'
 import UsuariosPage from './pages/UsuariosPage'
 import UnidadesPage from './pages/UnidadesPage'
+import ImportarUnidadesPage from './pages/ImportarUnidadesPage'
 import ComunicadosPage from './pages/ComunicadosPage'
 import DocumentosPage from './pages/DocumentosPage'
 import OcorrenciasPage from './pages/OcorrenciasPage'
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/" element={<RequireAuth><GestaoPage /></RequireAuth>} />
         <Route path="/aprovacoes" element={<RequireAuth><AprovacoesPage /></RequireAuth>} />
         <Route path="/unidades" element={<RequireAuth><UnidadesPage /></RequireAuth>} />
+        <Route path="/importar" element={<RequireAuth><ImportarUnidadesPage /></RequireAuth>} />
         <Route path="/comunicados" element={<RequireAuth><ComunicadosPage /></RequireAuth>} />
         <Route path="/documentos" element={<RequireAuth><DocumentosPage /></RequireAuth>} />
         <Route path="/ocorrencias" element={<RequireAuth><OcorrenciasPage /></RequireAuth>} />

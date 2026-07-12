@@ -22,7 +22,7 @@ export interface Licenca {
 export interface Usuario {
   id: string
   email: string
-  perfil: 'sindico' | 'porteiro' | 'morador' | 'admin' | 'superadmin'
+  perfil: 'sindico' | 'porteiro' | 'morador' | 'admin' | 'superadmin' | 'administradora'
   ativo: boolean
   mfa_ativo: boolean
   pessoa_id: string | null
@@ -39,7 +39,7 @@ export interface PessoaResumo {
 export interface CreateUsuario {
   email: string
   senha: string
-  perfil: 'sindico' | 'porteiro' | 'morador' | 'admin'
+  perfil: 'sindico' | 'porteiro' | 'morador' | 'admin' | 'administradora'
   pessoa_id?: string
 }
 
@@ -155,3 +155,11 @@ export const removerDocumento = (id: string) =>
 
 export const gerarConvite = (usuarioId: string) =>
   client.post(`/usuarios/${usuarioId}/convite`).then((r) => r.data.data as { token: string; expira_em_dias: number })
+
+export interface ContaCondominio {
+  tenant_id: string
+  condominio: string
+}
+
+export const trocarCondominio = (tenant_id: string) =>
+  client.post('/auth/trocar-condominio', { tenant_id }).then((r) => r.data.data as { token: string; tenant_id: string; condominio: string })

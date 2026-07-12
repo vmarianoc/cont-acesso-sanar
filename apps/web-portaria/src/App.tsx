@@ -4,7 +4,6 @@ import LoginPage from './pages/LoginPage'
 import RecuperarPage from './pages/RecuperarPage'
 import PortariaPage from './pages/PortariaPage'
 import VisitantePage from './pages/VisitantePage'
-import ImportarPage from './pages/ImportarPage'
 import SolicitarPage from './pages/SolicitarPage'
 import OcorrenciaPage from './pages/OcorrenciaPage'
 import PresencaPage from './pages/PresencaPage'
@@ -69,14 +68,6 @@ export default function App() {
           element={
             <RequireAuth>
               <SolicitarPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/importar"
-          element={
-            <RequireAuth>
-              <ImportarPage />
             </RequireAuth>
           }
         />

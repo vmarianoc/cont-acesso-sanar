@@ -3,9 +3,9 @@ import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { hashPassword } from '../services/authService.js'
 import { registrarAuditoria } from '../services/auditoriaService.js'
+import { PERFIS_GESTAO } from '../lib/perfis.js'
 
-const PERFIS_GESTAO = new Set(['admin', 'sindico', 'superadmin'])
-const PERFIS_CRIAVEIS = ['sindico', 'porteiro', 'morador', 'admin'] as const
+const PERFIS_CRIAVEIS = ['sindico', 'porteiro', 'morador', 'admin', 'administradora'] as const
 
 const CreateUsuarioBody = z.object({
   email: z.string().email(),

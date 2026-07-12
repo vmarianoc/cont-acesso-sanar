@@ -1,8 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
-
-const PERFIS_GESTAO = new Set(['admin', 'sindico', 'superadmin'])
+import { PERFIS_GESTAO } from '../lib/perfis.js'
 const TAMANHO_MAX = 10 * 1024 * 1024 // 10 MB
 
 /**

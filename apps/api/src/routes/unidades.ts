@@ -8,6 +8,7 @@ import {
   aplicarImportacao,
 } from '../services/pdfImportService.js'
 import { parseTabela, isTabular } from '../services/tabelaImportService.js'
+import { PERFIS_IMPORT } from '../lib/perfis.js'
 import {
   getLicencaEfetiva,
   contarUnidades,
@@ -34,8 +35,6 @@ const CreateVinculoBody = z.object({
   tipo_vinculo: z.enum(['proprietario', 'inquilino', 'dependente', 'funcionario']),
   principal: z.boolean().default(false),
 })
-
-const PERFIS_IMPORT = new Set(['admin', 'sindico', 'superadmin'])
 
 const unidadesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onRequest', fastify.authenticate)

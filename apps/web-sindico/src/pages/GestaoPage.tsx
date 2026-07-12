@@ -15,6 +15,7 @@ const baixarRelatorio = async (tipo: string) => {
   URL.revokeObjectURL(url)
 }
 import BottomNav from '../components/BottomNav'
+import PortfolioSwitcher from '../components/PortfolioSwitcher'
 
 export default function GestaoPage() {
   const navigate = useNavigate()
@@ -36,9 +37,12 @@ export default function GestaoPage() {
       <Header>
         <div className="flex items-center justify-between">
           <Logo subtitle="Gestão" />
-          <button onClick={() => { logout(); navigate('/login') }} className="text-white/70 text-sm">
-            Sair
-          </button>
+          <div className="flex items-center gap-3">
+            <PortfolioSwitcher />
+            <button onClick={() => { logout(); navigate('/login') }} className="text-white/70 text-sm">
+              Sair
+            </button>
+          </div>
         </div>
         <h1 className="text-2xl font-bold mt-4">Painel do síndico</h1>
         <p className="text-white/80 text-sm">Visão geral do condomínio</p>
