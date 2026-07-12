@@ -3,7 +3,7 @@ import pino from 'pino'
 import { carregarConfig, type DispositivoEdge } from './config.js'
 import { CloudClient, fingerprint } from './cloud.js'
 import { extrairPlaca } from './anpr.js'
-import { abrirAcesso, aplicarComando, extrairUserIdEvento } from './intelbras.js'
+import { abrirAcesso, aplicarComando, extrairUserIdEvento, extrairFotoEvento, removerFacial } from './intelbras.js'
 import { Store } from './store.js'
 import { guardaDeBoot, verificarEAtualizar, VERSAO_EDGE } from './updater.js'
 import { fazerBackup } from './backup.js'
@@ -27,9 +27,9 @@ async function main() {
     log.warn({ err: msg }, 'Cloud indisponível no boot — iniciando em modo degradado')
   }
 
-  const decidirLpr = async (dev: DispositivoEdge, placa: string) => {
+  const decidirLpr = async (dev: DispositivoEdge, placa: string, fotoBase64: string | null) => {
     try {
-      const r = await cloud.validarPlaca(dev.dispositivo_id, placa)
+      const r = await cloud.validarPlaca(dev.dispositivo_id, placa, fotoBase64)
       log.info({ dev: dev.nome, placa, resultado: r.resultado, motivo: r.motivo }, 'LPR decidido pela Cloud')
       if (r.resultado === 'liberado') await abrirAcesso(dev)
       return r
@@ -86,9 +86,10 @@ async function main() {
         }
         const pessoaId = store.pessoaDeUserId(userId)
         if (!pessoaId) return log.warn({ dev: dev.nome, userId }, 'UserID sem pessoa mapeada')
+        const fotoBase64 = extrairFotoEvento(corpo)
         try {
-          const r = await cloud.validarFacial(dev.dispositivo_id, pessoaId)
-          log.info({ dev: dev.nome, userId, resultado: r.resultado }, 'facial registrado na Cloud')
+          const r = await cloud.validarFacial(dev.dispositivo_id, pessoaId, fotoBase64)
+          log.info({ dev: dev.nome, userId, resultado: r.resultado, comFoto: !!fotoBase64 }, 'facial registrado na Cloud')
         } catch {
           store.enfileirarEvento({
             dispositivo_id: dev.dispositivo_id,
@@ -108,7 +109,7 @@ async function main() {
       if (!placa) return
       const dev = porIp.get(origem) ?? lprDevs[0]
       if (!dev || dev.tipo !== 'lpr') return log.warn({ origem, placa }, 'push ANPR sem dispositivo LPR configurado')
-      await decidirLpr(dev, placa)
+      await decidirLpr(dev, placa, extrairFotoEvento(corpo))
     })
   })
   server.listen(cfg.lpr_listen_port, () =>
@@ -127,15 +128,27 @@ async function main() {
       try {
         const comandos = await cloud.buscarComandos(dev.dispositivo_id)
         for (const cmd of comandos) {
-          const userId = cmd.payload?.pessoa_id ? store.userIdDe(cmd.payload.pessoa_id) : ''
+          const idRef = cmd.payload?.pessoa_id ?? cmd.payload?.visitante_id
+          const userId = idRef ? store.userIdDe(idRef) : ''
           const ok = dev.tipo === 'facial' ? await aplicarComando(dev, cmd, userId) : true
           await cloud.ackComando(cmd.id, ok)
           log.info({ dev: dev.nome, tipo: cmd.tipo_comando, ok }, 'comando processado')
+          // Convite facial de visitante: agenda a remoção da face para o fim
+          // da validade — o próprio Edge cuida disso, mesmo sem Cloud.
+          if (ok && cmd.tipo_comando === 'visitante.face.criar' && cmd.payload?.valido_ate) {
+            store.agendarRemocao(dev.dispositivo_id, userId, cmd.payload.valido_ate)
+          }
         }
         await cloud.heartbeat(dev.dispositivo_id, 'online', VERSAO_EDGE)
       } catch (err) {
         log.warn({ dev: dev.nome, err: (err as Error).message }, 'sync falhou (Cloud offline?)')
       }
+    }
+    for (const rem of store.removerVencidas()) {
+      const dev = cfg.dispositivos.find((d) => d.dispositivo_id === rem.dispositivo_id)
+      if (!dev) continue
+      const ok = await removerFacial(dev, rem.user_id)
+      log.info({ dev: dev.nome, userId: rem.user_id, ok }, 'face de visitante removida (convite expirado)')
     }
     const pendentes = store.eventosPendentes()
     if (pendentes.length > 0) {

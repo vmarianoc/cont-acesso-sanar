@@ -14,21 +14,41 @@ export interface EventoPendente {
   ocorrido_em: string
 }
 
+export interface RemocaoAgendada {
+  dispositivo_id: string
+  user_id: string
+  remover_em: string // ISO — valido_ate do convite facial de visitante
+}
+
 interface Estado {
   placas: Record<string, string> // placa -> pessoa_id
   eventos_pendentes: EventoPendente[]
-  // BioT exige UserID numérico; mapeamos cada pessoa_id (uuid) para um
-  // número incremental estável deste Edge
-  user_ids: Record<string, string> // pessoa_id -> UserID
+  // BioT exige UserID numérico; mapeamos cada pessoa_id/visitante_id (uuid)
+  // para um número incremental estável deste Edge
+  user_ids: Record<string, string> // pessoa_id|visitante_id -> UserID
   proximo_user_id: number
+  // Convite facial de visitante: quando remover a face do equipamento
+  // (o Edge decide sozinho, mesmo sem Cloud)
+  remocoes_agendadas: RemocaoAgendada[]
 }
 
 export class Store {
-  private estado: Estado = { placas: {}, eventos_pendentes: [], user_ids: {}, proximo_user_id: 1 }
+  private estado: Estado = {
+    placas: {},
+    eventos_pendentes: [],
+    user_ids: {},
+    proximo_user_id: 1,
+    remocoes_agendadas: [],
+  }
   constructor(private caminho = 'edge.state.json') {
     if (existsSync(this.caminho)) {
       try {
-        this.estado = { user_ids: {}, proximo_user_id: 1, ...JSON.parse(readFileSync(this.caminho, 'utf8')) }
+        this.estado = {
+          user_ids: {},
+          proximo_user_id: 1,
+          remocoes_agendadas: [],
+          ...JSON.parse(readFileSync(this.caminho, 'utf8')),
+        }
       } catch {
         /* estado corrompido: recomeça vazio */
       }
@@ -77,5 +97,24 @@ export class Store {
       if (uid === userId) return pessoa
     }
     return null
+  }
+
+  /** Agenda a remoção da face de um visitante ao fim da validade do convite. */
+  agendarRemocao(dispositivoId: string, userId: string, removerEm: string) {
+    this.estado.remocoes_agendadas.push({ dispositivo_id: dispositivoId, user_id: userId, remover_em: removerEm })
+    this.salvar()
+  }
+
+  /** Retira e devolve as remoções cujo prazo já venceu (para aplicar no equipamento). */
+  removerVencidas(): RemocaoAgendada[] {
+    const agora = Date.now()
+    const vencidas = this.estado.remocoes_agendadas.filter((r) => new Date(r.remover_em).getTime() <= agora)
+    if (vencidas.length > 0) {
+      this.estado.remocoes_agendadas = this.estado.remocoes_agendadas.filter(
+        (r) => new Date(r.remover_em).getTime() > agora
+      )
+      this.salvar()
+    }
+    return vencidas
   }
 }

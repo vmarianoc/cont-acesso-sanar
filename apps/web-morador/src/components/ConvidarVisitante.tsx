@@ -11,6 +11,16 @@ interface Convite {
   valido_de: string
   valido_ate: string
   qr_token: string | null
+  foto_base64: string | null
+}
+
+function arquivoParaBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve((reader.result as string).split(',')[1] ?? '')
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 }
 
 function QrCanvas({ token }: { token: string }) {
@@ -25,6 +35,7 @@ function QrCanvas({ token }: { token: string }) {
 export default function ConvidarVisitante() {
   const qc = useQueryClient()
   const [form, setForm] = useState({ nome: '', documento: '', horas: '4' })
+  const [foto, setFoto] = useState<{ arquivo: File; base64: string } | null>(null)
   const [qrAberto, setQrAberto] = useState<Convite | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,11 +55,13 @@ export default function ConvidarVisitante() {
         unidade_id: unidadeId,
         valido_de: new Date(agora - 5 * 60_000).toISOString(),
         valido_ate: new Date(agora + parseInt(form.horas, 10) * 3_600_000).toISOString(),
+        foto_base64: foto?.base64,
       })
       return res.data.data as Convite
     },
     onSuccess: (convite) => {
       setForm({ nome: '', documento: '', horas: '4' })
+      setFoto(null)
       setQrAberto(convite)
       setError(null)
       qc.invalidateQueries({ queryKey: ['convites'] })
@@ -73,6 +86,12 @@ export default function ConvidarVisitante() {
           <p className="text-sm text-gray-600 mt-3">
             Envie este QR ao visitante — é só apresentar no leitor facial da portaria.
           </p>
+          {qrAberto.foto_base64 && (
+            <p className="text-sm text-brand-600 mt-2">
+              📷 Reconhecimento facial também configurado — o visitante pode entrar só pelo rosto,
+              sem precisar do QR, dentro da validade do convite.
+            </p>
+          )}
           <Button className="w-full mt-4" onClick={() => setQrAberto(null)}>Fechar</Button>
         </div>
       ) : (
@@ -100,9 +119,26 @@ export default function ConvidarVisitante() {
               </select>
             </label>
           </div>
+          <label className="block">
+            <span className="text-sm font-medium text-gray-700">
+              Foto do visitante (opcional) — libera pelo facial, além do QR
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={async (e) => {
+                const arquivo = e.target.files?.[0]
+                if (!arquivo) return setFoto(null)
+                setFoto({ arquivo, base64: await arquivoParaBase64(arquivo) })
+              }}
+              className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-brand-700 file:text-sm"
+            />
+            {foto && <p className="text-xs text-gray-500 mt-1">{foto.arquivo.name} anexada</p>}
+          </label>
           {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
           <Button type="submit" className="w-full" disabled={criar.isPending || !form.nome}>
-            {criar.isPending ? 'Gerando...' : 'Gerar convite com QR'}
+            {criar.isPending ? 'Gerando...' : 'Gerar convite'}
           </Button>
         </form>
       )}

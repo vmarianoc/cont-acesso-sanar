@@ -46,9 +46,18 @@ export interface Solicitacao {
   criado_em: string
 }
 
+export interface FotoAcesso {
+  evento_id: string
+  metodo: string
+  resultado: 'liberado' | 'negado'
+  criado_em: string
+  foto_base64: string
+}
+
 const get = <T>(url: string) => client.get(url).then((r) => r.data.data as T)
 
 export const fetchResumo = () => get<Resumo>('/morador/resumo')
+export const fetchFotosAcesso = () => get<FotoAcesso[]>('/morador/fotos-acesso')
 export const fetchEncomendas = () => get<Encomenda[]>('/morador/encomendas')
 export const fetchEspacos = () => get<Espaco[]>('/espacos')
 export const fetchReservas = () => get<Reserva[]>('/morador/reservas')

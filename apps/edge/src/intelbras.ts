@@ -61,7 +61,14 @@ export async function abrirAcesso(dev: DispositivoEdge): Promise<boolean> {
 
 // ---- Cadastro (API V2 JSON) ----
 
-export function payloadUsuario(userId: string, nome: string) {
+/** ValidFrom/ValidTo por padrão bem largos (pessoa permanente); um visitante
+ * com convite facial informa a própria janela (`valido_de`/`valido_ate`) —
+ * o equipamento passa a reforçar a validade mesmo antes da remoção pelo Edge. */
+function formatoBioT(iso: string): string {
+  return iso.replace('T', ' ').replace(/\.\d+Z?$/, '').replace(/Z$/, '')
+}
+
+export function payloadUsuario(userId: string, nome: string, validFrom?: string, validTo?: string) {
   return {
     UserList: [
       {
@@ -72,8 +79,8 @@ export function payloadUsuario(userId: string, nome: string) {
         Authority: 1,
         Doors: [0],
         TimeSections: [255],
-        ValidFrom: '2020-01-01 00:00:00',
-        ValidTo: '2037-12-31 23:59:59',
+        ValidFrom: validFrom ? formatoBioT(validFrom) : '2020-01-01 00:00:00',
+        ValidTo: validTo ? formatoBioT(validTo) : '2037-12-31 23:59:59',
       },
     ],
   }
@@ -89,6 +96,14 @@ async function postJson(dev: DispositivoEdge, caminho: string, body: unknown): P
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
+  return res.ok
+}
+
+/** Remove face + usuário do controlador. Usado tanto por pessoa.remover
+ * quanto pela expiração automática de convite facial de visitante. */
+export async function removerFacial(dev: DispositivoEdge, userId: string): Promise<boolean> {
+  await digestFetch(dev, `/cgi-bin/AccessFace.cgi?action=removeMulti&UserIDList[0]=${userId}`)
+  const res = await digestFetch(dev, `/cgi-bin/AccessUser.cgi?action=removeMulti&UserIDList[0]=${userId}`)
   return res.ok
 }
 
@@ -115,14 +130,26 @@ export async function aplicarComando(
         return await postJson(dev, '/cgi-bin/AccessUser.cgi?action=insertMulti', payloadUsuario(userId, p.nome ?? ''))
       }
       case 'pessoa.remover': {
-        await digestFetch(dev, `/cgi-bin/AccessFace.cgi?action=removeMulti&UserIDList[0]=${userId}`)
-        const res = await digestFetch(dev, `/cgi-bin/AccessUser.cgi?action=removeMulti&UserIDList[0]=${userId}`)
-        return res.ok
+        return await removerFacial(dev, userId)
       }
       case 'face.atualizar': {
         if (!p.foto_base64) return true
         const ok = await postJson(dev, '/cgi-bin/AccessFace.cgi?action=updateMulti', payloadFace(userId, p.foto_base64))
         if (ok) return true
+        return await postJson(dev, '/cgi-bin/AccessFace.cgi?action=insertMulti', payloadFace(userId, p.foto_base64))
+      }
+      case 'visitante.face.criar': {
+        // Convite facial de visitante: cria o usuário já com a janela de
+        // validade do convite (o próprio equipamento passa a barrar fora
+        // da janela) e sobe a face. A remoção ao expirar é responsabilidade
+        // do Edge (ver store.agendarRemocao / removerVencidas em index.ts).
+        if (!p.foto_base64) return true
+        const okUser = await postJson(
+          dev,
+          '/cgi-bin/AccessUser.cgi?action=insertMulti',
+          payloadUsuario(userId, p.nome ?? '', p.valido_de, p.valido_ate)
+        )
+        if (!okUser) return false
         return await postJson(dev, '/cgi-bin/AccessFace.cgi?action=insertMulti', payloadFace(userId, p.foto_base64))
       }
       default:
@@ -188,4 +215,32 @@ export function extrairUserIdEvento(corpo: string): string | null {
   }
   const m = corpo.match(/["']?UserID["']?\s*[:=]\s*["']?(\w+)/i) ?? corpo.match(/["']?CardNo["']?\s*[:=]\s*["']?(\w+)/i)
   return m ? m[1] : null
+}
+
+/**
+ * Extrai a foto (base64) de um evento facial ou push ANPR, quando o
+ * equipamento a envia embutida na notificação — best-effort, igual a
+ * extrairUserIdEvento/extrairPlaca: cobre os campos usuais e retorna null
+ * sem travar nada se o formato do equipamento em campo divergir (calibrar
+ * contra amostras reais do hardware instalado).
+ */
+export function extrairFotoEvento(corpo: string): string | null {
+  try {
+    const json = JSON.parse(corpo)
+    const achar = (o: any): string | null => {
+      if (o === null || typeof o !== 'object') return null
+      for (const [k, v] of Object.entries(o)) {
+        if (['PicData', 'Picture', 'Image', 'FaceImage', 'SnapPicture', 'Photo'].includes(k) && typeof v === 'string' && v.length > 100)
+          return v
+        if (typeof v === 'object') {
+          const r = achar(v)
+          if (r) return r
+        }
+      }
+      return null
+    }
+    return achar(json)
+  } catch {
+    return null
+  }
 }

@@ -76,6 +76,31 @@ const moradorAppRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.status(200).send({ data: rows })
   })
 
+  // Fila temporária das últimas fotos de acesso liberado (facial/placa) da
+  // unidade — efêmera por design (ver registrarFotoAcesso), só as 5 mais recentes.
+  fastify.get('/morador/fotos-acesso', async (request, reply) => {
+    const ctx = await contextoMorador(request.tenantDb!, (request.user as any).sub, unidadeDoHeader(request))
+    if (!ctx || !ctx.unidade_id) return reply.status(200).send({ data: [] })
+
+    const rows = await request.tenantDb!.unsafe(
+      `SELECT ef.evento_id, ef.foto, ef.criado_em, e.metodo, e.resultado
+       FROM eventos_fotos ef
+       JOIN eventos e ON e.id = ef.evento_id
+       WHERE ef.unidade_id = $1
+       ORDER BY ef.criado_em DESC
+       LIMIT 5`,
+      [ctx.unidade_id]
+    )
+    const data = (rows as any[]).map((r) => ({
+      evento_id: r.evento_id,
+      metodo: r.metodo,
+      resultado: r.resultado,
+      criado_em: r.criado_em,
+      foto_base64: Buffer.from(r.foto).toString('base64'),
+    }))
+    return reply.status(200).send({ data })
+  })
+
   fastify.get('/morador/resumo', async (request, reply) => {
     const db = request.tenantDb!
     const ctx = await contextoMorador(db, (request.user as any).sub, unidadeDoHeader(request))

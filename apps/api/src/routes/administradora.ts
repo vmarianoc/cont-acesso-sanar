@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { createTenant } from '../services/tenantService.js'
 import { hashPassword } from '../services/authService.js'
 import { enviarEmail } from '../services/mailService.js'
+import { registrarAuditoria } from '../services/auditoriaService.js'
 
 const CreateCondominioBody = z.object({
   nome: z.string().min(2),
@@ -200,6 +201,87 @@ const administradoraRoutes: FastifyPluginAsync = async (fastify) => {
     }
     const [depois] = await fastify.db.unsafe(`SELECT * FROM tenants WHERE id = $1`, [id])
     return reply.status(200).send({ data: depois })
+  })
+
+  /**
+   * Gera o edge.config.json pronto do condomínio — o instalador só baixa e
+   * solta na pasta do Edge (não precisa preencher tenant_id/schema_name/
+   * license_key/credenciais à mão). Cria (ou reseta a senha de) um usuário
+   * dedicado perfil "porteiro" para o Edge usar — a senha só aparece aqui,
+   * neste momento do download.
+   */
+  fastify.get('/admin/condominios/:id/edge-config', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const [tenant] = await fastify.db.unsafe(
+      `SELECT t.id, t.nome, t.schema_name, l.license_key
+       FROM tenants t LEFT JOIN licencas l ON l.tenant_id = t.id
+       WHERE t.id = $1`,
+      [id]
+    )
+    if (!tenant) {
+      return reply.status(404).send({
+        erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Condomínio não encontrado' },
+      })
+    }
+
+    // domínio fixo — schema_name tem underscore, que não é válido em domínio de e-mail
+    const edgeEmail = `edge+${tenant.id}@condar.local`
+    const senhaEdge = randomBytes(9).toString('base64url')
+    const senhaHash = await hashPassword(senhaEdge)
+
+    const dispositivos = await fastify.withTenant(tenant.schema_name, async (sql) => {
+      const [existente] = await sql.unsafe(`SELECT id FROM usuarios_tenant WHERE email = $1`, [edgeEmail])
+      if (existente) {
+        await sql.unsafe(`UPDATE usuarios_tenant SET senha_hash = $1, ativo = true WHERE id = $2`, [
+          senhaHash,
+          existente.id,
+        ])
+      } else {
+        await sql.unsafe(
+          `INSERT INTO usuarios_tenant (id, email, senha_hash, perfil) VALUES ($1, $2, $3, 'porteiro')`,
+          [uuidv4(), edgeEmail, senhaHash]
+        )
+      }
+      await registrarAuditoria(sql, {
+        usuario_id: null,
+        acao: 'edge.config_gerado',
+        tabela: 'usuarios_tenant',
+        registro_id: null,
+        dados_depois: { email: edgeEmail, gerado_por_superadmin: (request.user as any).sub },
+        ip: request.ip,
+      })
+      return sql.unsafe(
+        `SELECT id, tipo, nome FROM dispositivos WHERE ativo = true AND tipo IN ('lpr','leitor_facial') ORDER BY nome`
+      )
+    })
+
+    const config = {
+      cloud_url: process.env.CLOUD_URL ?? 'https://api.condar.app',
+      tenant_id: tenant.id,
+      schema_name: tenant.schema_name,
+      license_key: tenant.license_key ?? '<condomínio sem licença — gere uma antes de instalar>',
+      email: edgeEmail,
+      senha: senhaEdge,
+      lpr_listen_port: 8090,
+      heartbeat_seg: 60,
+      sync_seg: 15,
+      dispositivos: (dispositivos as any[]).map((d) => ({
+        dispositivo_id: d.id,
+        tipo: d.tipo,
+        nome: d.nome,
+        ip: '<IP do equipamento na rede local>',
+        usuario: 'admin',
+        senha: '<senha do equipamento>',
+      })),
+    }
+
+    reply
+      .header('content-type', 'application/json')
+      .header(
+        'content-disposition',
+        `attachment; filename="edge.config.${tenant.nome.replace(/[^a-zA-Z0-9]+/g, '_')}.json"`
+      )
+    return reply.status(200).send(JSON.stringify(config, null, 2))
   })
 }
 

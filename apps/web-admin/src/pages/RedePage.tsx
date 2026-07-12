@@ -61,6 +61,20 @@ export default function RedePage() {
     onError: (err: any) => setError(err.response?.data?.erro?.mensagem ?? 'Falha ao atualizar'),
   })
 
+  const baixarEdgeConfig = async (id: string, nome: string) => {
+    try {
+      const res = await client.get(`/admin/condominios/${id}/edge-config`, { responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `edge.config.${nome.replace(/[^a-zA-Z0-9]+/g, '_')}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      setError(err.response?.data?.erro?.mensagem ?? 'Falha ao gerar configuração do Edge')
+    }
+  }
+
   return (
     <AppScreen bottomNav>
       <Header
@@ -183,6 +197,13 @@ export default function RedePage() {
                 className="text-brand-600 disabled:opacity-50"
               >
                 {c.ativo ? 'Desativar' : 'Reativar'}
+              </button>
+              <button
+                onClick={() => baixarEdgeConfig(c.id, c.nome)}
+                className="text-gray-600"
+                title="Baixa o edge.config.json pronto — só colocar na pasta de instalação do Edge"
+              >
+                ⬇ Config. Edge
               </button>
             </div>
           </div>

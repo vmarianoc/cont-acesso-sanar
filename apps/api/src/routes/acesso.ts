@@ -1,7 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { criarLiberacao, validarAcessoFacial, validarAcessoPlaca, validarQrVisitante, registrarEventoAcesso } from '../services/acessoService.js'
+import { criarLiberacao, validarAcessoFacial, validarAcessoPlaca, validarQrVisitante, registrarEventoAcesso, registrarFotoAcesso } from '../services/acessoService.js'
 import { registrarAuditoria } from '../services/auditoriaService.js'
+import { enqueueNotificacao } from '../workers/notificacoesQueue.js'
 
 const PERFIS_GESTAO = new Set(['admin', 'sindico', 'superadmin', 'porteiro'])
 
@@ -11,6 +12,7 @@ const ValidateAccessBody = z.object({
   pessoa_id: z.string().uuid().optional(),
   visitante_id: z.string().uuid().optional(),
   metodo: z.enum(['facial', 'qrcode', 'biometria']).default('facial'),
+  foto_base64: z.string().optional(),
 })
 
 const CreateLiberacaoBody = z.object({
@@ -29,6 +31,36 @@ const CreateLiberacaoBody = z.object({
     .optional(),
 }).refine((b) => b.pessoa_id || b.visitante_id, { message: 'Informe pessoa_id ou visitante_id' })
 
+/**
+ * Foto do momento da liberação (facial/LPR): grava na fila temporária da
+ * unidade e avisa a pessoa cujo facial/placa liberou. Nunca bloqueia nem
+ * derruba a decisão de acesso — falha aqui só vira log.
+ */
+async function processarFotoDeLiberacao(
+  sql: any,
+  logger: { warn: (obj: unknown, msg: string) => void },
+  schemaName: string,
+  eventoId: string,
+  pessoaId: string | null | undefined,
+  fotoBase64: string | undefined
+) {
+  if (!fotoBase64 || !pessoaId) return
+  try {
+    const r = await registrarFotoAcesso(sql, { evento_id: eventoId, pessoa_id: pessoaId, foto_base64: fotoBase64 })
+    if (!r) return
+    await enqueueNotificacao({
+      schema_name: schemaName,
+      pessoa_id: pessoaId,
+      titulo: 'Acesso liberado',
+      mensagem: 'Entrada liberada agora — veja a foto no app.',
+      tipo: 'acesso_foto',
+      dados: { evento_id: eventoId },
+    })
+  } catch (err) {
+    logger.warn({ err }, 'falha ao registrar foto/push de acesso liberado')
+  }
+}
+
 const acessoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onRequest', fastify.authenticate)
 
@@ -43,17 +75,20 @@ const acessoRoutes: FastifyPluginAsync = async (fastify) => {
         erro: { codigo: 'DADOS_INVALIDOS', mensagem: parsed.error.errors[0].message },
       })
     }
-    const { schema_name, dispositivo_id, pessoa_id, visitante_id, metodo } = parsed.data
+    const { schema_name, dispositivo_id, pessoa_id, visitante_id, metodo, foto_base64 } = parsed.data
 
     const resultado = await fastify.withTenant(schema_name, async (sql) => {
       const validacao = await validarAcessoFacial(sql, { dispositivo_id, pessoa_id, visitante_id })
       if (validacao.motivo !== 'DISPOSITIVO_DESCONHECIDO') {
-        await registrarEventoAcesso(sql, {
+        const eventoId = await registrarEventoAcesso(sql, {
           dispositivo_id,
           pessoa_id,
           resultado: validacao.resultado,
           metodo,
         })
+        if (validacao.resultado === 'liberado') {
+          await processarFotoDeLiberacao(sql, request.log, schema_name, eventoId, pessoa_id, foto_base64)
+        }
       }
       return validacao
     })
@@ -71,6 +106,7 @@ const acessoRoutes: FastifyPluginAsync = async (fastify) => {
       schema_name: z.string(),
       dispositivo_id: z.string().uuid(),
       placa: z.string().min(6).max(10),
+      foto_base64: z.string().optional(),
     })
     const parsed = LprBody.safeParse(request.body)
     if (!parsed.success) {
@@ -78,17 +114,20 @@ const acessoRoutes: FastifyPluginAsync = async (fastify) => {
         erro: { codigo: 'DADOS_INVALIDOS', mensagem: parsed.error.errors[0].message },
       })
     }
-    const { schema_name, dispositivo_id, placa } = parsed.data
+    const { schema_name, dispositivo_id, placa, foto_base64 } = parsed.data
 
     const resultado = await fastify.withTenant(schema_name, async (sql) => {
       const validacao = await validarAcessoPlaca(sql, { dispositivo_id, placa })
       if (validacao.motivo !== 'DISPOSITIVO_DESCONHECIDO') {
-        await registrarEventoAcesso(sql, {
+        const eventoId = await registrarEventoAcesso(sql, {
           dispositivo_id,
           pessoa_id: validacao.pessoa_id ?? null,
           resultado: validacao.resultado,
           metodo: 'placa',
         })
+        if (validacao.resultado === 'liberado') {
+          await processarFotoDeLiberacao(sql, request.log, schema_name, eventoId, validacao.pessoa_id, foto_base64)
+        }
       }
       return validacao
     })

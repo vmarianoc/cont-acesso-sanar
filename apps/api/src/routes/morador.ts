@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
 import { criarLiberacao } from '../services/acessoService.js'
+import { enfileirarComandoFacialVisitante } from '../services/syncEdgeService.js'
 
 const UpdatePerfilBody = z.object({
   nome: z.string().min(2).optional(),
@@ -22,6 +23,9 @@ const PreAutorizarVisitanteBody = z.object({
   unidade_id: z.string().uuid(),
   valido_de: z.string().datetime(),
   valido_ate: z.string().datetime(),
+  // Convite facial (segunda forma, além do QR): foto do visitante em base64,
+  // enviada ao leitor facial da portaria com validade — ver enfileirarComandoFacialVisitante.
+  foto_base64: z.string().optional(),
 })
 
 const moradorRoutes: FastifyPluginAsync = async (fastify) => {
@@ -150,16 +154,16 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
       })
     }
 
-    const { nome, documento, unidade_id, valido_de, valido_ate } = parsed.data
+    const { nome, documento, unidade_id, valido_de, valido_ate, foto_base64 } = parsed.data
     const id = uuidv4()
     // QR de convite: o visitante apresenta no leitor facial da portaria
     const qrToken = `V-${uuidv4().replace(/-/g, '').slice(0, 20).toUpperCase()}`
 
     const rows = await request.tenantDb!.unsafe(
-      `INSERT INTO visitantes (id, nome, documento, unidade_id, pre_autorizado_por, valido_de, valido_ate, qr_token)
-       SELECT $1, $2, $3, $4, pessoa_id, $5, $6, $8 FROM usuarios_tenant WHERE id = $7
+      `INSERT INTO visitantes (id, nome, documento, unidade_id, pre_autorizado_por, valido_de, valido_ate, qr_token, foto_base64)
+       SELECT $1, $2, $3, $4, pessoa_id, $5, $6, $8, $9 FROM usuarios_tenant WHERE id = $7
        RETURNING *`,
-      [id, nome, documento ?? null, unidade_id, valido_de, valido_ate, userId, qrToken]
+      [id, nome, documento ?? null, unidade_id, valido_de, valido_ate, userId, qrToken, foto_base64 ?? null]
     )
 
     if (rows[0]) {
@@ -173,6 +177,11 @@ const moradorRoutes: FastifyPluginAsync = async (fastify) => {
         origem_tipo: 'visitante',
         origem_id: id,
       })
+      // Convite facial (opcional, além do QR): envia a foto ao leitor facial
+      // da portaria, com a mesma janela de validade do convite.
+      if (foto_base64) {
+        await enfileirarComandoFacialVisitante(request.tenantDb!, id, foto_base64, valido_de, valido_ate)
+      }
     }
 
     return reply.status(201).send({ data: rows[0] })

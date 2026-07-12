@@ -119,4 +119,49 @@ describe('painel da administradora (superadmin)', () => {
     const [lic] = await sql.unsafe(`SELECT * FROM licencas WHERE tenant_id = $1`, [novoTenantId])
     expect(lic.max_unidades).toBe(50)
   })
+
+  it('gera o edge.config.json pronto do condomínio, com usuário do Edge criado', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: `/admin/condominios/${t.tenantId}/edge-config`,
+      headers: auth(tokenSuper),
+    })
+    expect(res.statusCode).toBe(200)
+    const config = JSON.parse(res.body)
+    expect(config.tenant_id).toBe(t.tenantId)
+    expect(config.schema_name).toBe(t.schemaName)
+    expect(config.email).toContain('edge+')
+    expect(config.senha).toBeTruthy()
+
+    // usuário do Edge foi criado com perfil porteiro e a senha retornada funciona
+    const login = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: config.email, senha: config.senha, tenant_id: t.tenantId },
+    })
+    expect(login.statusCode).toBe(200)
+    expect(login.json().data.perfil).toBe('porteiro')
+  })
+
+  it('baixar de novo reseta a senha do mesmo usuário do Edge (idempotente, sem duplicar)', async () => {
+    const primeira = await app.inject({
+      method: 'GET',
+      url: `/admin/condominios/${t.tenantId}/edge-config`,
+      headers: auth(tokenSuper),
+    })
+    const segunda = await app.inject({
+      method: 'GET',
+      url: `/admin/condominios/${t.tenantId}/edge-config`,
+      headers: auth(tokenSuper),
+    })
+    const emailPrimeira = JSON.parse(primeira.body).email
+    const emailSegunda = JSON.parse(segunda.body).email
+    expect(emailPrimeira).toBe(emailSegunda)
+
+    const usuarios = await sql.unsafe(
+      `SELECT id FROM ${t.schemaName}.usuarios_tenant WHERE email = $1`,
+      [emailSegunda]
+    )
+    expect(usuarios.length).toBe(1)
+  })
 })

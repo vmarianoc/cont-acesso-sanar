@@ -114,12 +114,44 @@ export async function registrarEventoAcesso(
     resultado: 'liberado' | 'negado'
     metodo?: string
   }
-) {
+): Promise<string> {
+  const id = uuidv4()
   await sql.unsafe(
     `INSERT INTO eventos (id, dispositivo_id, pessoa_id, tipo, resultado, metodo)
      VALUES ($1, $2, $3, 'acesso_area', $4, $5)`,
-    [uuidv4(), params.dispositivo_id, params.pessoa_id ?? null, params.resultado, params.metodo ?? 'facial']
+    [id, params.dispositivo_id, params.pessoa_id ?? null, params.resultado, params.metodo ?? 'facial']
   )
+  return id
+}
+
+/**
+ * Foto do momento da liberação (facial ou LPR), para a fila temporária do
+ * morador. Efêmera por design (LGPD): mantém só as 5 fotos mais recentes por
+ * unidade — o registro em `eventos` (auditoria) não é afetado pela poda.
+ */
+export async function registrarFotoAcesso(
+  sql: Sql,
+  params: { evento_id: string; pessoa_id: string; foto_base64: string }
+): Promise<{ unidade_id: string } | null> {
+  const [vinculo] = await sql.unsafe(
+    `SELECT unidade_id FROM vinculos_unidade WHERE pessoa_id = $1 AND ativo = true ORDER BY criado_em ASC LIMIT 1`,
+    [params.pessoa_id]
+  )
+  if (!vinculo) return null
+
+  const foto = Buffer.from(params.foto_base64, 'base64')
+  await sql.unsafe(
+    `INSERT INTO eventos_fotos (evento_id, unidade_id, foto) VALUES ($1, $2, $3)
+     ON CONFLICT (evento_id) DO NOTHING`,
+    [params.evento_id, vinculo.unidade_id, foto]
+  )
+  await sql.unsafe(
+    `DELETE FROM eventos_fotos WHERE unidade_id = $1 AND evento_id NOT IN (
+       SELECT evento_id FROM eventos_fotos WHERE unidade_id = $1 ORDER BY criado_em DESC LIMIT 5
+     )`,
+    [vinculo.unidade_id]
+  )
+  return { unidade_id: vinculo.unidade_id }
 }
 
 export interface ValidacaoPlaca extends ValidacaoAcesso {

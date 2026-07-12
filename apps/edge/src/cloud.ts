@@ -63,16 +63,22 @@ export class CloudClient {
     return json.data
   }
 
-  validarPlaca(dispositivo_id: string, placa: string) {
-    return this.req('POST', '/edge/lpr', { schema_name: this.cfg.schema_name, dispositivo_id, placa })
+  validarPlaca(dispositivo_id: string, placa: string, foto_base64?: string | null) {
+    return this.req('POST', '/edge/lpr', {
+      schema_name: this.cfg.schema_name,
+      dispositivo_id,
+      placa,
+      ...(foto_base64 ? { foto_base64 } : {}),
+    })
   }
 
-  validarFacial(dispositivo_id: string, pessoa_id: string) {
+  validarFacial(dispositivo_id: string, pessoa_id: string, foto_base64?: string | null) {
     return this.req('POST', '/edge/validate-access', {
       schema_name: this.cfg.schema_name,
       dispositivo_id,
       pessoa_id,
       metodo: 'facial',
+      ...(foto_base64 ? { foto_base64 } : {}),
     })
   }
 

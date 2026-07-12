@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppScreen, Header, Button, iniciais } from '@condar/ui'
-import { fetchSolicitacoes, decidirSolicitacao } from '../api/morador'
+import { fetchSolicitacoes, decidirSolicitacao, fetchFotosAcesso } from '../api/morador'
 import BottomNav from '../components/BottomNav'
 import ConvidarVisitante from '../components/ConvidarVisitante'
 
@@ -10,6 +10,11 @@ export default function AutorizarPage() {
     queryKey: ['solicitacoes'],
     queryFn: fetchSolicitacoes,
     refetchInterval: 8000,
+  })
+  const { data: fotosAcesso } = useQuery({
+    queryKey: ['fotos-acesso'],
+    queryFn: fetchFotosAcesso,
+    refetchInterval: 15000,
   })
   const decidir = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'liberado' | 'recusado' }) =>
@@ -82,6 +87,31 @@ export default function AutorizarPage() {
             </div>
           ))}
         </div>
+        {!!fotosAcesso?.length && (
+          <>
+            <h3 className="text-xs tracking-widest uppercase text-gray-400 mt-6 mb-2 px-1">
+              Fotos das últimas entradas
+            </h3>
+            <p className="text-xs text-gray-400 px-1 mb-2">
+              Fila temporária (só as 5 mais recentes) — facial e veículo.
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {fotosAcesso.map((f) => (
+                <div key={f.evento_id} className="shrink-0 w-24 text-center">
+                  <img
+                    src={`data:image/jpeg;base64,${f.foto_base64}`}
+                    alt={`Acesso ${f.metodo}`}
+                    className="w-24 h-24 object-cover rounded-xl shadow-sm"
+                  />
+                  <span className="block text-[10px] text-gray-500 mt-1 capitalize">
+                    {f.metodo} · {new Date(f.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
         <ConvidarVisitante />
       </div>
 
