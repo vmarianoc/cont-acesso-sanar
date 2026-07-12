@@ -4,6 +4,7 @@ import { carregarConfig, type DispositivoEdge } from './config.js'
 import { CloudClient, fingerprint } from './cloud.js'
 import { extrairPlaca } from './anpr.js'
 import { abrirAcesso, aplicarComando, extrairUserIdEvento, extrairFotoEvento, removerFacial } from './intelbras.js'
+import { capturarSnapshot } from './camera.js'
 import { Store } from './store.js'
 import { guardaDeBoot, verificarEAtualizar, VERSAO_EDGE } from './updater.js'
 import { fazerBackup } from './backup.js'
@@ -55,6 +56,17 @@ async function main() {
   const porIp = new Map(cfg.dispositivos.map((d) => [d.ip, d]))
   const lprDevs = cfg.dispositivos.filter((d) => d.tipo === 'lpr')
   const facialDevs = cfg.dispositivos.filter((d) => d.tipo === 'facial')
+  // Câmera "camera": só tira a foto do instante do acesso (sem streaming) —
+  // se configurada, prevalece sobre a foto embutida no push do próprio
+  // equipamento (extrairFotoEvento), que depende de calibração por hardware.
+  const camDevs = cfg.dispositivos.filter((d) => d.tipo === 'camera')
+  const capturarFoto = async (fallback: string | null): Promise<string | null> => {
+    if (camDevs[0]) {
+      const foto = await capturarSnapshot(camDevs[0])
+      if (foto) return foto
+    }
+    return fallback
+  }
   const server = createServer((req, res) => {
     let corpo = ''
     req.on('data', (c) => (corpo += c))
@@ -86,7 +98,7 @@ async function main() {
         }
         const pessoaId = store.pessoaDeUserId(userId)
         if (!pessoaId) return log.warn({ dev: dev.nome, userId }, 'UserID sem pessoa mapeada')
-        const fotoBase64 = extrairFotoEvento(corpo)
+        const fotoBase64 = await capturarFoto(extrairFotoEvento(corpo))
         try {
           const r = await cloud.validarFacial(dev.dispositivo_id, pessoaId, fotoBase64)
           log.info({ dev: dev.nome, userId, resultado: r.resultado, comFoto: !!fotoBase64 }, 'facial registrado na Cloud')
@@ -109,7 +121,7 @@ async function main() {
       if (!placa) return
       const dev = porIp.get(origem) ?? lprDevs[0]
       if (!dev || dev.tipo !== 'lpr') return log.warn({ origem, placa }, 'push ANPR sem dispositivo LPR configurado')
-      await decidirLpr(dev, placa, extrairFotoEvento(corpo))
+      await decidirLpr(dev, placa, await capturarFoto(extrairFotoEvento(corpo)))
     })
   })
   server.listen(cfg.lpr_listen_port, () =>

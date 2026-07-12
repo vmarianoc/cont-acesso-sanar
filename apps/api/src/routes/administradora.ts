@@ -251,7 +251,7 @@ const administradoraRoutes: FastifyPluginAsync = async (fastify) => {
         ip: request.ip,
       })
       return sql.unsafe(
-        `SELECT id, tipo, nome FROM dispositivos WHERE ativo = true AND tipo IN ('lpr','leitor_facial') ORDER BY nome`
+        `SELECT id, tipo, nome FROM dispositivos WHERE ativo = true AND tipo IN ('lpr','leitor_facial','camera') ORDER BY nome`
       )
     })
 
@@ -265,6 +265,9 @@ const administradoraRoutes: FastifyPluginAsync = async (fastify) => {
       lpr_listen_port: 8090,
       heartbeat_seg: 60,
       sync_seg: 15,
+      // Câmera de foto (tipo "camera"): a Cloud não fala com ela diretamente —
+      // é o próprio Edge que puxa um snapshot via HTTP (usuario/senha aqui) no
+      // instante do acesso, só para anexar a foto ao evento. Sem streaming/RTSP.
       dispositivos: (dispositivos as any[]).map((d) => ({
         dispositivo_id: d.id,
         tipo: d.tipo,
@@ -272,6 +275,9 @@ const administradoraRoutes: FastifyPluginAsync = async (fastify) => {
         ip: '<IP do equipamento na rede local>',
         usuario: 'admin',
         senha: '<senha do equipamento>',
+        ...(d.tipo === 'camera'
+          ? { snapshot_path: '<caminho HTTP do snapshot da câmera, ex.: /cgi-bin/snapshot.cgi?channel=1>' }
+          : {}),
       })),
     }
 

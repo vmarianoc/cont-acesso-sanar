@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AppScreen, Header, IconTile, Badge } from '@condar/ui'
 import { fetchEncomendas } from '../api/morador'
 import BottomNav from '../components/BottomNav'
+import QrCanvas from '../components/QrCanvas'
 
 const fmtDia = (s: string) =>
   new Date(s).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
@@ -34,6 +35,12 @@ export default function EncomendasPage() {
                 <p className="text-xs tracking-widest uppercase text-gray-500">Código de retirada</p>
                 <p className="text-3xl font-bold text-brand-600 tracking-[0.3em] mt-1">
                   {e.codigo_retirada}
+                </p>
+                <div className="mt-3">
+                  <QrCanvas token={e.codigo_retirada} />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Mostre este código ou o QR para a portaria na retirada.
                 </p>
               </div>
             )}

@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import QRCode from 'qrcode'
 import { Button, TextField } from '@condar/ui'
 import client from '../api/client'
+import QrCanvas from './QrCanvas'
 
 interface Convite {
   id: string
@@ -21,14 +21,6 @@ function arquivoParaBase64(file: File): Promise<string> {
     reader.onerror = reject
     reader.readAsDataURL(file)
   })
-}
-
-function QrCanvas({ token }: { token: string }) {
-  const ref = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    if (ref.current) QRCode.toCanvas(ref.current, token, { width: 220, margin: 1 })
-  }, [token])
-  return <canvas ref={ref} className="mx-auto rounded-xl" />
 }
 
 /** Convite de visitante com QR — o visitante apresenta no leitor facial da portaria. */

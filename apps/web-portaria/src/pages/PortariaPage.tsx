@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import EventFeed from '../components/EventFeed'
 import StatusBar from '../components/StatusBar'
 import Logo from '../components/Logo'
@@ -9,6 +9,7 @@ import { useDispositivos } from '../hooks/useDispositivos'
 import { useRegistrarEvento } from '../hooks/useRegistrarEvento'
 import BuscaGlobal from '../components/BuscaGlobal'
 import { fetchEncomendas } from '../api/encomendas'
+import { fetchVisitantes, marcarPresenca } from '../api/visitantes'
 
 function Clock() {
   const [time, setTime] = useState(new Date())
@@ -23,6 +24,7 @@ function Clock() {
 
 export default function PortariaPage() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const { logout } = useAuth()
   const { data: dispositivos } = useDispositivos()
   const registrar = useRegistrarEvento()
@@ -33,6 +35,16 @@ export default function PortariaPage() {
     queryKey: ['encomendas', 'aguardando'],
     queryFn: () => fetchEncomendas('aguardando'),
     refetchInterval: 20000,
+  })
+  const { data: visitantes } = useQuery({
+    queryKey: ['visitantes'],
+    queryFn: fetchVisitantes,
+    refetchInterval: 20000,
+  })
+  const esperados = visitantes?.filter((v) => !v.entrada_em) ?? []
+  const marcarEntrada = useMutation({
+    mutationFn: (id: string) => marcarPresenca(id, 'entrada'),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['visitantes'] }),
   })
 
   const handleLogout = async () => {
@@ -93,6 +105,39 @@ export default function PortariaPage() {
           >
             📦 {encomendasAguardando.length} encomenda(s) aguardando retirada — toque para ver
           </button>
+        )}
+
+        {esperados.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex-shrink-0">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-blue-800">
+                👤 {esperados.length} visitante(s) esperado(s)
+              </span>
+              <button
+                onClick={() => navigate('/presenca')}
+                className="text-xs font-semibold text-blue-700 hover:underline"
+              >
+                Ver todos
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              {esperados.slice(0, 3).map((v) => (
+                <div key={v.id} className="flex items-center justify-between gap-2 bg-white/70 rounded-md px-2 py-1.5">
+                  <span className="text-xs text-blue-900 truncate">
+                    {v.nome}
+                    {v.unidade_numero ? ` · AP ${v.unidade_numero}` : ''}
+                  </span>
+                  <button
+                    onClick={() => marcarEntrada.mutate(v.id)}
+                    disabled={marcarEntrada.isPending}
+                    className="text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded disabled:opacity-50 flex-shrink-0"
+                  >
+                    Entrada
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Event feed */}

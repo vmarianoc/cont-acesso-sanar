@@ -1,17 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import client from '../api/client'
-
-interface Visitante {
-  id: string
-  nome: string
-  documento: string | null
-  unidade_numero: string | null
-  valido_de: string
-  valido_ate: string
-  entrada_em: string | null
-  saida_em: string | null
-}
+import { fetchVisitantes, marcarPresenca, type Visitante } from '../api/visitantes'
 
 const fmtHora = (s: string) =>
   new Date(s).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -22,13 +11,12 @@ export default function PresencaPage() {
 
   const { data: visitantes } = useQuery({
     queryKey: ['visitantes'],
-    queryFn: () => client.get('/visitantes').then((r) => r.data.data as Visitante[]),
+    queryFn: fetchVisitantes,
     refetchInterval: 10000,
   })
 
   const marcar = useMutation({
-    mutationFn: ({ id, acao }: { id: string; acao: 'entrada' | 'saida' }) =>
-      client.post(`/visitantes/${id}/${acao}`),
+    mutationFn: ({ id, acao }: { id: string; acao: 'entrada' | 'saida' }) => marcarPresenca(id, acao),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['visitantes'] }),
   })
 

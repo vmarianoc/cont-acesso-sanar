@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchUnidades, fetchEncomendas, registrarEncomenda, retirarEncomenda, type Encomenda } from '../api/encomendas'
+import QrScanner from '../components/QrScanner'
 
 const inputCls =
   'mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500'
@@ -16,6 +17,7 @@ export default function EncomendaPage() {
   const [codigos, setCodigos] = useState<Record<string, string>>({})
   const [gerada, setGerada] = useState<Encomenda | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [escaneando, setEscaneando] = useState(false)
 
   const { data: unidades } = useQuery({ queryKey: ['unidades', 'options'], queryFn: () => fetchUnidades() })
   const { data: encomendas } = useQuery({
@@ -53,6 +55,17 @@ export default function EncomendaPage() {
   })
 
   const aguardando = encomendas?.filter((e) => e.status === 'aguardando') ?? []
+
+  const onScan = (texto: string) => {
+    setEscaneando(false)
+    const alvo = aguardando.find((e) => e.codigo_retirada === texto.trim())
+    if (!alvo) {
+      setError('Código lido não corresponde a nenhuma encomenda aguardando')
+      return
+    }
+    setError(null)
+    setCodigos((p) => ({ ...p, [alvo.id]: texto.trim() }))
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -149,9 +162,17 @@ export default function EncomendaPage() {
         </div>
 
         <div className="mt-6">
-          <h2 className="text-xs tracking-widest uppercase text-gray-400 mb-2 px-1">
-            Aguardando retirada ({aguardando.length})
-          </h2>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <h2 className="text-xs tracking-widest uppercase text-gray-400">
+              Aguardando retirada ({aguardando.length})
+            </h2>
+            <button
+              onClick={() => setEscaneando(true)}
+              className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+            >
+              📷 Escanear código
+            </button>
+          </div>
           <div className="space-y-3">
             {aguardando.map((e) => (
               <div key={e.id} className="bg-white rounded-xl shadow-sm p-4 space-y-3">
@@ -189,6 +210,7 @@ export default function EncomendaPage() {
           </div>
         </div>
       </div>
+      {escaneando && <QrScanner onScan={onScan} onClose={() => setEscaneando(false)} />}
     </div>
   )
 }

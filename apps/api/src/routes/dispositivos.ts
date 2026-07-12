@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { registrarAuditoria } from '../services/auditoriaService.js'
 import { PERFIS_GESTAO } from '../lib/perfis.js'
 
-const TIPOS = ['catraca', 'cancela', 'leitor_facial', 'leitor_qrcode', 'interfone'] as const
+const TIPOS = ['catraca', 'cancela', 'leitor_facial', 'leitor_qrcode', 'interfone', 'lpr', 'camera'] as const
 
 const CreateDispositivoBody = z.object({
   nome: z.string().min(2),

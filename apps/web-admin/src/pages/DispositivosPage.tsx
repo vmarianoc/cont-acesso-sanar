@@ -10,6 +10,7 @@ const TIPOS = [
   { value: 'cancela', label: 'Cancela', icon: '🚗' },
   { value: 'leitor_qrcode', label: 'Leitor QR Code', icon: '🔳' },
   { value: 'lpr', label: 'Câmera LPR (placas)', icon: '📷' },
+  { value: 'camera', label: 'Câmera (foto no acesso)', icon: '📸' },
   { value: 'interfone', label: 'Interfone', icon: '📞' },
 ] as const
 

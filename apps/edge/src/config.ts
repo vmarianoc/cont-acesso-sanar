@@ -3,11 +3,13 @@ import { resolve } from 'node:path'
 
 export interface DispositivoEdge {
   dispositivo_id: string
-  tipo: 'lpr' | 'facial'
+  tipo: 'lpr' | 'facial' | 'camera'
   nome: string
   ip: string
   usuario: string
   senha: string
+  /** Só para tipo "camera": caminho HTTP do snapshot (default: cgi Intelbras). */
+  snapshot_path?: string
 }
 
 export interface EdgeConfig {
