@@ -89,6 +89,10 @@ const acessoRoutes: FastifyPluginAsync = async (fastify) => {
         if (validacao.resultado === 'liberado') {
           await processarFotoDeLiberacao(sql, request.log, schema_name, eventoId, pessoa_id, foto_base64)
         }
+        await fastify.publishRt(schema_name, ['perfil:porteiro', 'perfil:admin'], {
+          tipo: 'evento_acesso',
+          dados: { resultado: validacao.resultado, metodo },
+        })
       }
       return validacao
     })
@@ -128,6 +132,10 @@ const acessoRoutes: FastifyPluginAsync = async (fastify) => {
         if (validacao.resultado === 'liberado') {
           await processarFotoDeLiberacao(sql, request.log, schema_name, eventoId, validacao.pessoa_id, foto_base64)
         }
+        await fastify.publishRt(schema_name, ['perfil:porteiro', 'perfil:admin'], {
+          tipo: 'evento_acesso',
+          dados: { resultado: validacao.resultado, metodo: 'placa' },
+        })
       }
       return validacao
     })

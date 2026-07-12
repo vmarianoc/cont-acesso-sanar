@@ -6,6 +6,7 @@ import PortariaPage from './pages/PortariaPage'
 import VisitantePage from './pages/VisitantePage'
 import SolicitarPage from './pages/SolicitarPage'
 import OcorrenciaPage from './pages/OcorrenciaPage'
+import EncomendaPage from './pages/EncomendaPage'
 import PresencaPage from './pages/PresencaPage'
 import ChatPage from './pages/ChatPage'
 
@@ -60,6 +61,14 @@ export default function App() {
           element={
             <RequireAuth>
               <OcorrenciaPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/encomenda"
+          element={
+            <RequireAuth>
+              <EncomendaPage />
             </RequireAuth>
           }
         />

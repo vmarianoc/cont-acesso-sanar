@@ -41,9 +41,6 @@ export default function AutorizarPage() {
               </span>
               <h2 className="text-xl font-bold text-gray-900 mt-3">{pendente.nome}</h2>
               <p className="text-gray-500 text-sm mt-1 capitalize">{pendente.tipo}</p>
-              <button className="mt-4 w-full bg-gray-50 rounded-xl py-3 text-sm text-gray-700">
-                📷 Ver câmera da portaria
-              </button>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-5">
               <Button

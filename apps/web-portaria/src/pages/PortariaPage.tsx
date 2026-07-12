@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import EventFeed from '../components/EventFeed'
 import StatusBar from '../components/StatusBar'
 import Logo from '../components/Logo'
@@ -7,13 +8,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useDispositivos } from '../hooks/useDispositivos'
 import { useRegistrarEvento } from '../hooks/useRegistrarEvento'
 import BuscaGlobal from '../components/BuscaGlobal'
-
-const CAMERAS = [
-  { id: '1', label: 'Entrada Principal' },
-  { id: '2', label: 'Garagem' },
-  { id: '3', label: 'Saída' },
-  { id: '4', label: 'Área de Serviço' },
-]
+import { fetchEncomendas } from '../api/encomendas'
 
 function Clock() {
   const [time, setTime] = useState(new Date())
@@ -34,6 +29,11 @@ export default function PortariaPage() {
 
   const dispositivoId = dispositivos?.[0]?.id
   const [feedback, setFeedback] = useState<string | null>(null)
+  const { data: encomendasAguardando } = useQuery({
+    queryKey: ['encomendas', 'aguardando'],
+    queryFn: () => fetchEncomendas('aguardando'),
+    refetchInterval: 20000,
+  })
 
   const handleLogout = async () => {
     await logout()
@@ -70,6 +70,12 @@ export default function PortariaPage() {
             + Visitante
           </button>
           <button
+            onClick={() => navigate('/encomenda')}
+            className="bg-white/10 hover:bg-white/20 text-white text-sm px-3 py-1.5 rounded-md transition-colors"
+          >
+            📦 Encomendas{encomendasAguardando?.length ? ` (${encomendasAguardando.length})` : ''}
+          </button>
+          <button
             onClick={handleLogout}
             className="text-white/60 hover:text-white text-sm transition-colors"
           >
@@ -79,28 +85,18 @@ export default function PortariaPage() {
       </header>
 
       {/* Main content */}
-      <div className="flex flex-col lg:flex-row flex-1 gap-4 p-4 lg:overflow-hidden">
-        {/* Camera grid */}
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-rows-2 gap-3">
-          {CAMERAS.map((cam) => (
-            <div
-              key={cam.id}
-              className="bg-black rounded-lg overflow-hidden relative flex items-center justify-center min-h-[140px]"
-            >
-              <div className="text-gray-600 text-sm">Feed de câmera</div>
-              <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-                {cam.label}
-              </div>
-              <div className="absolute top-2 right-2 flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-white text-xs">AO VIVO</span>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="flex flex-col flex-1 gap-4 p-4 lg:overflow-hidden">
+        {!!encomendasAguardando?.length && (
+          <button
+            onClick={() => navigate('/encomenda')}
+            className="bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-2 rounded-lg text-left hover:bg-amber-100 transition-colors flex-shrink-0"
+          >
+            📦 {encomendasAguardando.length} encomenda(s) aguardando retirada — toque para ver
+          </button>
+        )}
 
         {/* Event feed */}
-        <div className="w-full lg:w-80 h-96 lg:h-auto flex flex-col bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="flex-1 flex flex-col bg-white rounded-lg shadow-sm overflow-hidden lg:max-w-2xl lg:mx-auto lg:w-full">
           <div className="p-3 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-800">Eventos Recentes</h2>
           </div>
@@ -138,6 +134,12 @@ export default function PortariaPage() {
           className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
         >
           Cadastrar Visitante
+        </button>
+        <button
+          onClick={() => navigate('/encomenda')}
+          className="bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+        >
+          Registrar Encomenda
         </button>
         <button
           onClick={() => navigate('/chat')}

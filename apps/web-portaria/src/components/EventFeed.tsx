@@ -1,3 +1,6 @@
+import { useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useRealtime } from '@condar/ui'
 import { useEventos } from '../hooks/useEventos'
 import type { Evento } from '../api/eventos'
 
@@ -11,8 +14,52 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
+/** Beep curto (Web Audio, sem arquivo de áudio) para chamar atenção em negados. */
+function beepNegado() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.frequency.value = 440
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    gain.gain.setValueAtTime(0.15, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.4)
+  } catch {
+    /* autoplay bloqueado antes da primeira interação — ignora */
+  }
+}
+
 export default function EventFeed() {
+  const qc = useQueryClient()
   const { data: eventos, isLoading, isError } = useEventos(30)
+  const [novoId, setNovoId] = useState<string | null>(null)
+  const idsConhecidos = useRef<Set<string>>(new Set())
+
+  // Eventos de acesso (facial/LPR/QR) chegam na hora via SSE — o polling
+  // (useEventos) só serve de rede de segurança se a conexão cair.
+  useRealtime((ev) => {
+    if (ev.tipo === 'evento_acesso' || ev.tipo === 'visitante_qr') {
+      qc.invalidateQueries({ queryKey: ['eventos'] })
+    }
+  })
+
+  useEffect(() => {
+    if (!eventos) return
+    const primeiraCarga = idsConhecidos.current.size === 0
+    for (const evento of eventos) {
+      if (!idsConhecidos.current.has(evento.id)) {
+        idsConhecidos.current.add(evento.id)
+        if (!primeiraCarga) {
+          setNovoId(evento.id)
+          if (evento.resultado === 'negado') beepNegado()
+          setTimeout(() => setNovoId((atual) => (atual === evento.id ? null : atual)), 2000)
+        }
+      }
+    }
+  }, [eventos])
 
   if (isLoading) {
     return (
@@ -38,12 +85,14 @@ export default function EventFeed() {
       {eventos?.map((evento) => (
         <div
           key={evento.id}
-          className="flex items-center gap-3 p-2 rounded-lg bg-white border border-gray-100 hover:bg-gray-50 transition-colors"
+          className={`flex items-center gap-3 p-2 rounded-lg bg-white border transition-colors ${
+            evento.id === novoId ? 'border-brand-400 bg-brand-50' : 'border-gray-100 hover:bg-gray-50'
+          }`}
         >
-          {evento.foto_url ? (
+          {evento.foto_base64 ? (
             <img
-              src={evento.foto_url}
-              alt="Foto"
+              src={`data:image/jpeg;base64,${evento.foto_base64}`}
+              alt="Foto do acesso"
               className="h-10 w-10 rounded-full object-cover flex-shrink-0"
             />
           ) : (

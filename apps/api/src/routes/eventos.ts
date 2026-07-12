@@ -37,16 +37,25 @@ const eventosRoutes: FastifyPluginAsync = async (fastify) => {
       `SELECT e.*,
               CASE WHEN p.id IS NULL THEN NULL
                    ELSE json_build_object('nome', p.nome, 'foto_url', p.foto_url)
-              END AS pessoa
+              END AS pessoa,
+              ef.foto AS foto_bytes
        FROM eventos e
        LEFT JOIN pessoas p ON p.id = e.pessoa_id
+       LEFT JOIN eventos_fotos ef ON ef.evento_id = e.id
        ${where}
        ORDER BY e.criado_em DESC
        LIMIT ${limit} OFFSET ${offset}`,
       params
     )
 
-    return reply.status(200).send({ data: rows })
+    // A foto do momento da liberação (quando existe) vem em bytea — vira
+    // base64 para o front renderizar direto, sem endpoint de arquivo à parte.
+    const data = (rows as any[]).map(({ foto_bytes, ...evento }) => ({
+      ...evento,
+      foto_base64: foto_bytes ? Buffer.from(foto_bytes).toString('base64') : null,
+    }))
+
+    return reply.status(200).send({ data })
   })
 
   fastify.post('/eventos', async (request, reply) => {

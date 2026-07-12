@@ -8,6 +8,7 @@ export interface Evento {
   resultado: 'liberado' | 'negado' | 'erro'
   metodo: 'facial' | 'qrcode' | 'biometria' | 'manual'
   foto_url: string | null
+  foto_base64: string | null
   criado_em: string
   pessoa?: { nome: string }
 }

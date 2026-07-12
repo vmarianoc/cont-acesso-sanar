@@ -112,4 +112,21 @@ describe('tempo real portaria ↔ morador (SSE)', () => {
     expect(evento.dados.status).toBe('liberado')
     expect(evento.dados.id).toBe(pendente.id)
   })
+
+  it('portaria recebe evento_acesso em tempo real quando o facial libera um morador', async () => {
+    const eventoPromise = esperarEvento(tokenPorteiro, 'evento_acesso')
+    await new Promise((r) => setTimeout(r, 300))
+
+    const validar = await app.inject({
+      method: 'POST',
+      url: '/edge/validate-access',
+      headers: { authorization: `Bearer ${tokenPorteiro}` },
+      payload: { schema_name: t.schemaName, dispositivo_id: t.dispositivoId, pessoa_id: t.morador.pessoaId },
+    })
+    expect(validar.statusCode).toBe(200)
+
+    const evento = await eventoPromise
+    expect(evento.dados.resultado).toBe('liberado')
+    expect(evento.dados.metodo).toBe('facial')
+  })
 })

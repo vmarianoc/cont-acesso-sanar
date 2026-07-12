@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { FastifyInstance } from 'fastify'
+import { v4 as uuidv4 } from 'uuid'
 import { buildApp } from '../src/app.js'
 import { makeSql, createTestTenant, dropTestTenant, type TestTenant } from './helpers.js'
 
@@ -55,5 +56,39 @@ describe('GET /eventos', () => {
     })
     expect(res.statusCode).toBe(201)
     expect(res.json().data.metodo).toBe('manual')
+  })
+
+  it('inclui foto_base64 quando o acesso liberado tem foto (e null quando não tem)', async () => {
+    await sql.unsafe(
+      `INSERT INTO ${t.schemaName}.vinculos_unidade (id, pessoa_id, unidade_id, tipo_vinculo, ativo, principal)
+       VALUES ($1, $2, $3, 'proprietario', true, true)`,
+      [uuidv4(), t.morador.pessoaId, t.unidadeId]
+    )
+    const foto = Buffer.from('foto-evento-teste').toString('base64')
+    const validar = await app.inject({
+      method: 'POST',
+      url: '/edge/validate-access',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        schema_name: t.schemaName,
+        dispositivo_id: t.dispositivoId,
+        pessoa_id: t.morador.pessoaId,
+        foto_base64: foto,
+      },
+    })
+    expect(validar.statusCode).toBe(200)
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/eventos?limit=5',
+      headers: { authorization: `Bearer ${token}` },
+    })
+    const eventos = res.json().data as any[]
+    const comFoto = eventos.find((e) => e.foto_base64)
+    expect(comFoto).toBeTruthy()
+    expect(comFoto.foto_base64).toBe(foto)
+
+    const semFoto = eventos.find((e) => e.metodo === 'manual')
+    expect(semFoto.foto_base64).toBeNull()
   })
 })
