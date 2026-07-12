@@ -2,21 +2,32 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
 import VisitorForm from '../components/VisitorForm'
+import QrScanner from '../components/QrScanner'
 
 
 function ValidarConvite() {
   const [token, setToken] = useState('')
   const [resultado, setResultado] = useState<any | null>(null)
   const [erro, setErro] = useState<string | null>(null)
-  const validar = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const [escaneando, setEscaneando] = useState(false)
+
+  const validar = async (tok: string) => {
     setErro(null)
     try {
-      const r = await client.post('/visitantes/validar-qr', { qr_token: token.trim() })
+      const r = await client.post('/visitantes/validar-qr', { qr_token: tok.trim() })
       setResultado(r.data.data)
     } catch (err: any) {
       setErro(err.response?.data?.erro?.mensagem ?? 'Falha ao validar')
     }
+  }
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    validar(token)
+  }
+  const onScan = (texto: string) => {
+    setEscaneando(false)
+    setToken(texto)
+    validar(texto)
   }
   const registrarEntrada = async () => {
     if (!resultado?.visitante) return
@@ -27,14 +38,21 @@ function ValidarConvite() {
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
       <h3 className="font-semibold text-gray-900">Validar convite (QR)</h3>
-      <form onSubmit={validar} className="flex gap-2">
+      <form onSubmit={onSubmit} className="flex gap-2">
         <input value={token} onChange={(e) => setToken(e.target.value)}
-          placeholder="Escaneie ou digite o código V-…"
+          placeholder="Digite o código V-… ou use a câmera"
           className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm font-mono" />
+        <button type="button" onClick={() => setEscaneando(true)}
+          className="rounded-xl border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+          📷
+        </button>
         <button type="submit" className="rounded-xl bg-brand-600 text-white px-4 text-sm font-semibold">
           Validar
         </button>
       </form>
+      {escaneando && (
+        <QrScanner onScan={onScan} onClose={() => setEscaneando(false)} />
+      )}
       {erro && <p className="text-sm text-red-600 bg-red-50 p-2 rounded-lg">{erro}</p>}
       {resultado && (
         <div className={`rounded-xl p-3 ${resultado.resultado === 'liberado' ? 'bg-green-50' : 'bg-red-50'}`}>
