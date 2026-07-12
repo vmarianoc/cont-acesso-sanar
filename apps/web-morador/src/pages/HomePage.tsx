@@ -64,7 +64,6 @@ export default function HomePage() {
           {!!r?.visitantes_aguardando && (
             <Card
               icon="👤"
-              iconBg="bg-gray-800"
               titulo="Visitante aguardando"
               sub="Na portaria agora"
               onClick={() => navigate('/acesso')}
