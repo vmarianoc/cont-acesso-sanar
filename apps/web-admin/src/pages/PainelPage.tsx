@@ -76,6 +76,15 @@ export default function PainelPage() {
             onClick={() => navigate('/rede')}
           />
         )}
+        {perfil === 'superadmin' && (
+          <Card
+            icon="🔑"
+            iconBg="bg-gray-800"
+            titulo="Licenças"
+            sub="Buscar, renovar e desvincular hardware"
+            onClick={() => navigate('/licencas')}
+          />
+        )}
         <Card
           icon="🛰️"
           iconBg="bg-gray-800"

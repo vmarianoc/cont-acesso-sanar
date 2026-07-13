@@ -9,6 +9,7 @@ import LiberacoesPage from './pages/LiberacoesPage'
 import DispositivosPage from './pages/DispositivosPage'
 import RedePage from './pages/RedePage'
 import FaturasPage from './pages/FaturasPage'
+import LicencasPage from './pages/LicencasPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!localStorage.getItem('token')) return <Navigate to="/login" replace />
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/dispositivos" element={<RequireAuth><DispositivosPage /></RequireAuth>} />
         <Route path="/rede" element={<RequireAuth><RedePage /></RequireAuth>} />
         <Route path="/faturas" element={<RequireAuth><FaturasPage /></RequireAuth>} />
+        <Route path="/licencas" element={<RequireAuth><LicencasPage /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

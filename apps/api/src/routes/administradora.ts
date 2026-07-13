@@ -19,6 +19,15 @@ const UpdateCondominioBody = z.object({
   plano: z.enum(['start', 'pro', 'enterprise']).optional(),
 }).refine((b) => b.ativo !== undefined || b.plano, { message: 'Nada para atualizar' })
 
+const UpdateLicencaBody = z.object({
+  renovar_dias: z.number().int().positive().optional(),
+  ativa: z.boolean().optional(),
+  desvincular_hardware: z.boolean().optional(),
+}).refine(
+  (b) => b.renovar_dias !== undefined || b.ativa !== undefined || b.desvincular_hardware,
+  { message: 'Nada para atualizar' }
+)
+
 /**
  * Painel da administradora (perfil superadmin): visão consolidada de todos os
  * condomínios (tenants), onboarding self-service de condomínio com convite ao
@@ -71,12 +80,21 @@ const administradoraRoutes: FastifyPluginAsync = async (fastify) => {
     })
   })
 
-  fastify.get('/admin/condominios', async (_request, reply) => {
+  fastify.get('/admin/condominios', async (request, reply) => {
+    const { busca } = request.query as { busca?: string }
+    const params: any[] = []
+    let cond = 'true'
+    if (busca) {
+      params.push(`%${busca}%`)
+      cond = `(t.nome ILIKE $1 OR l.license_key ILIKE $1)`
+    }
     const tenants = await fastify.db.unsafe(
       `SELECT t.id, t.nome, t.codigo, t.schema_name, t.plano, t.ativo, t.criado_em,
-              l.validade, l.max_unidades
+              l.validade, l.max_unidades, l.license_key, l.edge_fingerprint, l.ativa AS licenca_ativa
        FROM tenants t LEFT JOIN licencas l ON l.tenant_id = t.id
-       ORDER BY t.nome`
+       WHERE ${cond}
+       ORDER BY t.nome`,
+      params
     )
     const detalhes = []
     for (const t of tenants as any[]) {
@@ -98,6 +116,9 @@ const administradoraRoutes: FastifyPluginAsync = async (fastify) => {
         ativo: t.ativo,
         validade: t.validade,
         max_unidades: t.max_unidades,
+        license_key: t.license_key,
+        edge_fingerprint: t.edge_fingerprint,
+        licenca_ativa: t.licenca_ativa,
         ...uso,
       })
     }
@@ -200,6 +221,70 @@ const administradoraRoutes: FastifyPluginAsync = async (fastify) => {
       )
     }
     const [depois] = await fastify.db.unsafe(`SELECT * FROM tenants WHERE id = $1`, [id])
+    return reply.status(200).send({ data: depois })
+  })
+
+  /**
+   * Gestão de licença pelo time interno da Condar: renovar validade, ativar/
+   * suspender, e desvincular o hardware do Edge (necessário quando o cliente
+   * troca o equipamento — sem isso a licença fica presa ao fingerprint antigo
+   * para sempre, ver validarLicencaPorKey em licencaService.ts).
+   */
+  fastify.patch('/admin/condominios/:id/licenca', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const parsed = UpdateLicencaBody.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        erro: { codigo: 'DADOS_INVALIDOS', mensagem: parsed.error.errors[0].message },
+      })
+    }
+    const [tenant] = await fastify.db.unsafe(`SELECT id, schema_name FROM tenants WHERE id = $1`, [id])
+    if (!tenant) {
+      return reply.status(404).send({
+        erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Condomínio não encontrado' },
+      })
+    }
+
+    const depois = await fastify.withTenant(tenant.schema_name, async (sql) => {
+      const [antes] = await sql.unsafe(`SELECT * FROM licencas WHERE tenant_id = $1`, [id])
+      if (!antes) return null
+
+      const sets: string[] = ['atualizado_em = NOW()']
+      const params: any[] = []
+      if (parsed.data.renovar_dias !== undefined) {
+        params.push(parsed.data.renovar_dias)
+        sets.push(`validade = GREATEST(COALESCE(validade, NOW()), NOW()) + ($${params.length} || ' days')::interval`)
+      }
+      if (parsed.data.ativa !== undefined) {
+        params.push(parsed.data.ativa)
+        sets.push(`ativa = $${params.length}`)
+      }
+      if (parsed.data.desvincular_hardware) {
+        sets.push(`edge_fingerprint = NULL`)
+      }
+      params.push(id)
+      const [row] = await sql.unsafe(
+        `UPDATE licencas SET ${sets.join(', ')} WHERE tenant_id = $${params.length} RETURNING *`,
+        params
+      )
+
+      await registrarAuditoria(sql, {
+        usuario_id: null, // ação da administradora Condar, não de um usuário deste tenant
+        acao: 'licenca.atualizar',
+        tabela: 'licencas',
+        registro_id: antes.id,
+        dados_antes: antes,
+        dados_depois: { ...row, atualizado_por_superadmin: (request.user as any).sub },
+        ip: request.ip,
+      })
+      return row
+    })
+
+    if (!depois) {
+      return reply.status(404).send({
+        erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Condomínio sem licença cadastrada' },
+      })
+    }
     return reply.status(200).send({ data: depois })
   })
 

@@ -120,6 +120,56 @@ describe('painel da administradora (superadmin)', () => {
     expect(lic.max_unidades).toBe(50)
   })
 
+  it('busca condomínio pela chave de licença', async () => {
+    const [licenca] = await sql.unsafe(`SELECT license_key FROM licencas WHERE tenant_id = $1`, [t.tenantId])
+    const res = await app.inject({
+      method: 'GET',
+      url: `/admin/condominios?busca=${encodeURIComponent(licenca.license_key)}`,
+      headers: auth(tokenSuper),
+    })
+    expect(res.statusCode).toBe(200)
+    const achado = res.json().data.find((c: any) => c.id === t.tenantId)
+    expect(achado).toBeTruthy()
+    expect(achado.license_key).toBe(licenca.license_key)
+  })
+
+  it('renova, suspende e desvincula hardware da licença', async () => {
+    const [antes] = await sql.unsafe(`SELECT validade FROM licencas WHERE tenant_id = $1`, [t.tenantId])
+
+    const renovar = await app.inject({
+      method: 'PATCH',
+      url: `/admin/condominios/${t.tenantId}/licenca`,
+      headers: auth(tokenSuper),
+      payload: { renovar_dias: 30 },
+    })
+    expect(renovar.statusCode).toBe(200)
+    expect(new Date(renovar.json().data.validade).getTime()).toBeGreaterThan(new Date(antes.validade).getTime())
+
+    await sql.unsafe(`UPDATE licencas SET edge_fingerprint = 'fp-de-teste' WHERE tenant_id = $1`, [t.tenantId])
+    const desvincular = await app.inject({
+      method: 'PATCH',
+      url: `/admin/condominios/${t.tenantId}/licenca`,
+      headers: auth(tokenSuper),
+      payload: { desvincular_hardware: true, ativa: false },
+    })
+    expect(desvincular.statusCode).toBe(200)
+    expect(desvincular.json().data.edge_fingerprint).toBeNull()
+    expect(desvincular.json().data.ativa).toBe(false)
+
+    // volta a licença ativa para não interferir em outros testes que reusam este tenant
+    await sql.unsafe(`UPDATE licencas SET ativa = true WHERE tenant_id = $1`, [t.tenantId])
+  })
+
+  it('síndico comum não gerencia licença', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/admin/condominios/${t.tenantId}/licenca`,
+      headers: auth(tokenSindico),
+      payload: { renovar_dias: 30 },
+    })
+    expect(res.statusCode).toBe(403)
+  })
+
   it('gera o edge.config.json pronto do condomínio, com usuário do Edge criado', async () => {
     const res = await app.inject({
       method: 'GET',
