@@ -57,7 +57,7 @@ export default function EncomendasPage() {
   const retiradas = encomendas?.filter((e) => e.status === 'retirada') ?? []
 
   return (
-    <AppScreen bottomNav>
+    <AppScreen bottomNav wide>
       <Header
         variant="tinta"
         eyebrow="Portaria"

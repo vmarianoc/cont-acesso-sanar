@@ -76,7 +76,7 @@ export default function RedePage() {
   }
 
   return (
-    <AppScreen bottomNav>
+    <AppScreen bottomNav wide>
       <Header
         eyebrow="Administradora"
         title="Minha rede"

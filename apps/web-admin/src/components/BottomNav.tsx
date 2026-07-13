@@ -11,5 +11,5 @@ const ITENS: NavItem[] = [
 export default function BottomNav() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  return <UIBottomNav items={ITENS} current={pathname} onNavigate={navigate} />
+  return <UIBottomNav items={ITENS} current={pathname} onNavigate={navigate} wide />
 }

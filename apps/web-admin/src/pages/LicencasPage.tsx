@@ -52,7 +52,7 @@ export default function LicencasPage() {
   }
 
   return (
-    <AppScreen bottomNav>
+    <AppScreen bottomNav wide>
       <Header eyebrow="Condar" title="Licenças" />
 
       <div className="px-5 mt-4 space-y-3">

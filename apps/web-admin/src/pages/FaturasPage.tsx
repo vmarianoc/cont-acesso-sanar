@@ -64,7 +64,7 @@ export default function FaturasPage() {
   })
 
   return (
-    <AppScreen bottomNav>
+    <AppScreen bottomNav wide>
       <Header
         eyebrow="Billing · Banco Cora"
         title="Faturas"

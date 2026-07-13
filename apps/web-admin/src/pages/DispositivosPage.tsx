@@ -56,7 +56,7 @@ export default function DispositivosPage() {
   }
 
   return (
-    <AppScreen bottomNav>
+    <AppScreen bottomNav wide>
       <Header
         variant="tinta"
         eyebrow="Controle de acesso"

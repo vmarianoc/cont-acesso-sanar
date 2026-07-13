@@ -36,7 +36,7 @@ export default function CadastrosPage() {
   })
 
   return (
-    <AppScreen bottomNav>
+    <AppScreen bottomNav wide>
       <Header
         variant="tinta"
         eyebrow="Administração"

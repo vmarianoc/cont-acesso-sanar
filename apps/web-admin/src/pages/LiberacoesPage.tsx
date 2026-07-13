@@ -68,7 +68,7 @@ export default function LiberacoesPage() {
   }
 
   return (
-    <AppScreen bottomNav>
+    <AppScreen bottomNav wide>
       <Header
         variant="tinta"
         eyebrow="Controle de acesso"

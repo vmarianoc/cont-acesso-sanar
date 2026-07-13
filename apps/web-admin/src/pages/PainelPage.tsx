@@ -21,7 +21,7 @@ export default function PainelPage() {
   const { data: licenca } = useQuery({ queryKey: ['licenca'], queryFn: fetchLicenca })
 
   return (
-    <AppScreen bottomNav>
+    <AppScreen bottomNav wide>
       <Header>
         <div className="flex items-center justify-between">
           <Logo subtitle="Administração" />

@@ -1,15 +1,19 @@
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes } from 'react'
 
-/** Casca de tela mobile (max-w-md, fundo areia). */
+/** Casca de tela mobile (max-w-md, fundo areia). `wide` usa max-w-4xl —
+ * pensado para apps usados de desktop (ex.: painel interno), não altera o
+ * comportamento padrão dos apps mobile-first. */
 export function AppScreen({
   children,
   bottomNav = false,
+  wide = false,
 }: {
   children: ReactNode
   bottomNav?: boolean
+  wide?: boolean
 }) {
   return (
-    <div className={`min-h-screen bg-areia max-w-md mx-auto ${bottomNav ? 'pb-24' : ''}`}>
+    <div className={`min-h-screen bg-areia mx-auto ${wide ? 'max-w-4xl' : 'max-w-md'} ${bottomNav ? 'pb-24' : ''}`}>
       {children}
     </div>
   )
@@ -186,13 +190,15 @@ export function BottomNav({
   items,
   current,
   onNavigate,
+  wide = false,
 }: {
   items: NavItem[]
   current: string
   onNavigate: (to: string) => void
+  wide?: boolean
 }) {
   return (
-    <nav className="fixed bottom-0 inset-x-0 mx-auto max-w-md bg-white border-t border-gray-200 flex justify-around py-2 pb-[env(safe-area-inset-bottom)]">
+    <nav className={`fixed bottom-0 inset-x-0 mx-auto ${wide ? 'max-w-4xl' : 'max-w-md'} bg-white border-t border-gray-200 flex justify-around py-2 pb-[env(safe-area-inset-bottom)]`}>
       {items.map((i) => {
         const ativo = current === i.to
         return (
