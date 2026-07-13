@@ -28,6 +28,11 @@ const UpdateLicencaBody = z.object({
   { message: 'Nada para atualizar' }
 )
 
+const CriarSindicoAcessoBody = z.object({
+  email: z.string().email(),
+  nome: z.string().min(2),
+})
+
 /**
  * Painel da administradora (perfil superadmin): visão consolidada de todos os
  * condomínios (tenants), onboarding self-service de condomínio com convite ao
@@ -286,6 +291,60 @@ const administradoraRoutes: FastifyPluginAsync = async (fastify) => {
       })
     }
     return reply.status(200).send({ data: depois })
+  })
+
+  /**
+   * Cria (ou reseta a senha de) um acesso de síndico direto no condomínio,
+   * sem depender do fluxo de convite por e-mail — útil quando o onboarding
+   * não gerou o convite (ou ele nunca foi aceito) e a equipe Condar precisa
+   * destravar o acesso na hora. A senha só aparece aqui, neste momento.
+   */
+  fastify.post('/admin/condominios/:id/sindico-acesso', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const parsed = CriarSindicoAcessoBody.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        erro: { codigo: 'DADOS_INVALIDOS', mensagem: parsed.error.errors[0].message },
+      })
+    }
+    const { email, nome } = parsed.data
+
+    const [tenant] = await fastify.db.unsafe(`SELECT id, schema_name FROM tenants WHERE id = $1`, [id])
+    if (!tenant) {
+      return reply.status(404).send({
+        erro: { codigo: 'NAO_ENCONTRADO', mensagem: 'Condomínio não encontrado' },
+      })
+    }
+
+    const senha = randomBytes(9).toString('base64url')
+    const senhaHash = await hashPassword(senha)
+
+    await fastify.withTenant(tenant.schema_name, async (sql) => {
+      const [existente] = await sql.unsafe(`SELECT id FROM usuarios_tenant WHERE email = $1`, [email])
+      if (existente) {
+        await sql.unsafe(
+          `UPDATE usuarios_tenant SET senha_hash = $1, perfil = 'sindico', ativo = true WHERE id = $2`,
+          [senhaHash, existente.id]
+        )
+      } else {
+        const pessoaId = uuidv4()
+        await sql.unsafe(`INSERT INTO pessoas (id, nome, tipo) VALUES ($1, $2, 'morador')`, [pessoaId, nome])
+        await sql.unsafe(
+          `INSERT INTO usuarios_tenant (id, pessoa_id, email, senha_hash, perfil) VALUES ($1, $2, $3, $4, 'sindico')`,
+          [uuidv4(), pessoaId, email, senhaHash]
+        )
+      }
+      await registrarAuditoria(sql, {
+        usuario_id: null, // ação da administradora Condar, não de um usuário deste tenant
+        acao: 'sindico.acesso_gerado',
+        tabela: 'usuarios_tenant',
+        registro_id: null,
+        dados_depois: { email, gerado_por_superadmin: (request.user as any).sub },
+        ip: request.ip,
+      })
+    })
+
+    return reply.status(200).send({ data: { email, senha, tenant_id: tenant.id } })
   })
 
   /**

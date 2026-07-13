@@ -171,6 +171,53 @@ describe('painel da administradora (superadmin)', () => {
     expect(res.statusCode).toBe(403)
   })
 
+  it('cria acesso de síndico direto (sem convite) e reseta senha ao repetir', async () => {
+    const email = `sindico-direto-${Date.now()}@test.com`
+    const criar = await app.inject({
+      method: 'POST',
+      url: `/admin/condominios/${t.tenantId}/sindico-acesso`,
+      headers: auth(tokenSuper),
+      payload: { email, nome: 'Síndico Direto' },
+    })
+    expect(criar.statusCode).toBe(200)
+    const primeiraSenha = criar.json().data.senha
+    expect(primeiraSenha).toBeTruthy()
+
+    const login = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email, senha: primeiraSenha, tenant_id: t.tenantId },
+    })
+    expect(login.statusCode).toBe(200)
+    expect(login.json().data.perfil).toBe('sindico')
+
+    const reset = await app.inject({
+      method: 'POST',
+      url: `/admin/condominios/${t.tenantId}/sindico-acesso`,
+      headers: auth(tokenSuper),
+      payload: { email, nome: 'Síndico Direto' },
+    })
+    const segundaSenha = reset.json().data.senha
+    expect(segundaSenha).not.toBe(primeiraSenha)
+
+    const loginComSenhaVelha = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email, senha: primeiraSenha, tenant_id: t.tenantId },
+    })
+    expect(loginComSenhaVelha.statusCode).toBe(401)
+  })
+
+  it('síndico comum não cria acesso de síndico', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: `/admin/condominios/${t.tenantId}/sindico-acesso`,
+      headers: auth(tokenSindico),
+      payload: { email: 'x@test.com', nome: 'X' },
+    })
+    expect(res.statusCode).toBe(403)
+  })
+
   it('gera o edge.config.json pronto do condomínio, com usuário do Edge criado', async () => {
     const res = await app.inject({
       method: 'GET',
