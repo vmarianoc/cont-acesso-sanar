@@ -13,7 +13,9 @@ COPY packages/ui/package.json packages/ui/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY apps/api apps/api
-RUN pnpm --filter api build
+RUN pnpm --filter api build \
+  && mkdir -p apps/api/dist/db/migrations \
+  && cp apps/api/src/db/migrations/*.sql apps/api/dist/db/migrations/
 RUN pnpm --filter api deploy --prod --legacy /prod/api
 
 FROM node:20-alpine AS runtime

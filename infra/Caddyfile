@@ -5,32 +5,57 @@ api.condar.app {
 portaria.condar.app {
 	root * /srv/condar/web-portaria
 	encode gzip
-	try_files {path} /index.html
-	file_server
 
-	reverse_proxy /api/* 127.0.0.1:3000 {
-		uri strip_prefix /api
+	route {
+		handle_path /api/* {
+			reverse_proxy 127.0.0.1:3000
+		}
+		try_files {path} /index.html
+		file_server
 	}
 }
 
-morador.condar.app, condar.app, www.condar.app {
+morador.condar.app {
 	root * /srv/condar/web-morador
 	encode gzip
-	try_files {path} /index.html
-	file_server
 
-	reverse_proxy /api/* 127.0.0.1:3000 {
-		uri strip_prefix /api
+	route {
+		handle_path /api/* {
+			reverse_proxy 127.0.0.1:3000
+		}
+		try_files {path} /index.html
+		file_server
 	}
 }
 
-sindico.condar.app {
+condar.app, www.condar.app {
+	root * /srv/condar/web-home
+	encode gzip
+	file_server
+}
+
+sindico.condar.app, administradora.condar.app {
 	root * /srv/condar/web-sindico
 	encode gzip
-	try_files {path} /index.html
-	file_server
 
-	reverse_proxy /api/* 127.0.0.1:3000 {
-		uri strip_prefix /api
+	route {
+		handle_path /api/* {
+			reverse_proxy 127.0.0.1:3000
+		}
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+admin.condar.app {
+	root * /srv/condar/web-admin
+	encode gzip
+
+	route {
+		handle_path /api/* {
+			reverse_proxy 127.0.0.1:3000
+		}
+		try_files {path} /index.html
+		file_server
 	}
 }

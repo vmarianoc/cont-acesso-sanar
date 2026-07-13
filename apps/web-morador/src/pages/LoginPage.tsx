@@ -76,20 +76,22 @@ export default function LoginPage() {
         <Button type="submit" disabled={loading} className="w-full">
           {loading ? 'Entrando...' : 'Entrar'}
         </Button>
-        <button
-          type="button"
-          onClick={() => navigate('/recuperar')}
-          className="w-full text-sm text-gray-500 hover:text-brand-600"
-        >
-          Esqueci minha senha
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/registro')}
-          className="w-full text-sm font-semibold text-brand-600"
-        >
-          Primeiro acesso? Criar conta
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate('/recuperar')}
+            className="text-sm text-gray-500 hover:text-brand-600"
+          >
+            Esqueci minha senha
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/registro')}
+            className="text-sm font-semibold text-brand-600 hover:text-brand-700"
+          >
+            Primeiro acesso
+          </button>
+        </div>
       </form>
     </div>
   )
