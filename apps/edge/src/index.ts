@@ -75,11 +75,12 @@ async function main() {
       const origem = (req.socket.remoteAddress ?? '').replace('::ffff:', '')
       const url = req.url ?? '/'
 
-      // keepalive do modo online do BioT
-      if (url.startsWith('/keepalive')) return
+      // keepalive — cobre tanto o BioT (/keepalive) quanto a Notificação PUSH
+      // das câmeras LPR (/NotificationInfo/KeepAlive, caminho fixo da Intelbras)
+      if (/keepalive/i.test(url)) return
 
       // evento de acesso do controlador facial (Event Server BioT)
-      if (url.startsWith('/notification')) {
+      if (/^\/notification\b/i.test(url)) {
         const userId = extrairUserIdEvento(corpo)
         if (!userId) return
         const dev = porIp.get(origem) ?? facialDevs[0]
