@@ -19,7 +19,7 @@ export async function digestFetch(
   caminho: string,
   init?: RequestInit
 ): Promise<Response> {
-  const url = `http://${dev.ip}${caminho}`
+  const url = `http://${dev.ip}:${dev.porta ?? 37777}${caminho}`
   const primeira = await fetch(url, { ...init, signal: AbortSignal.timeout(4000) })
   if (primeira.status !== 401) return primeira
 

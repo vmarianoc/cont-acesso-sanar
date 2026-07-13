@@ -6,6 +6,8 @@ export interface DispositivoEdge {
   tipo: 'lpr' | 'facial' | 'camera'
   nome: string
   ip: string
+  /** Default 37777 — porta padrão dos equipamentos Intelbras (não é 80). */
+  porta?: number
   usuario: string
   senha: string
   /** Só para tipo "camera": caminho HTTP do snapshot (default: cgi Intelbras). */

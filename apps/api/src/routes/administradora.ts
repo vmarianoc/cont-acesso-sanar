@@ -353,11 +353,15 @@ const administradoraRoutes: FastifyPluginAsync = async (fastify) => {
       // Câmera de foto (tipo "camera"): a Cloud não fala com ela diretamente —
       // é o próprio Edge que puxa um snapshot via HTTP (usuario/senha aqui) no
       // instante do acesso, só para anexar a foto ao evento. Sem streaming/RTSP.
+      // Nomenclatura do tipo de dispositivo diverge entre banco (leitor_facial)
+      // e edge.config.json (facial, ver DispositivoEdge em apps/edge/src/config.ts)
+      // — sem esse mapeamento o Edge nunca reconhece o leitor facial.
       dispositivos: (dispositivos as any[]).map((d) => ({
         dispositivo_id: d.id,
-        tipo: d.tipo,
+        tipo: d.tipo === 'leitor_facial' ? 'facial' : d.tipo,
         nome: d.nome,
         ip: '<IP do equipamento na rede local>',
+        porta: 37777, // padrão Intelbras — troque se o equipamento estiver em outra porta
         usuario: 'admin',
         senha: '<senha do equipamento>',
         ...(d.tipo === 'camera'

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { FastifyInstance } from 'fastify'
+import { v4 as uuidv4 } from 'uuid'
 import { buildApp } from '../src/app.js'
 import { makeSql, createTestTenant, dropTestTenant, type TestTenant } from './helpers.js'
 
@@ -191,6 +192,23 @@ describe('painel da administradora (superadmin)', () => {
     })
     expect(login.statusCode).toBe(200)
     expect(login.json().data.perfil).toBe('porteiro')
+  })
+
+  it('mapeia leitor_facial (banco) para facial (edge.config.json)', async () => {
+    const facialId = uuidv4()
+    await sql.unsafe(
+      `INSERT INTO ${t.schemaName}.dispositivos (id, nome, tipo, ativo) VALUES ($1, 'Facial Teste', 'leitor_facial', true)`,
+      [facialId]
+    )
+    const res = await app.inject({
+      method: 'GET',
+      url: `/admin/condominios/${t.tenantId}/edge-config`,
+      headers: auth(tokenSuper),
+    })
+    expect(res.statusCode).toBe(200)
+    const dispositivo = JSON.parse(res.body).dispositivos.find((d: any) => d.dispositivo_id === facialId)
+    expect(dispositivo).toBeTruthy()
+    expect(dispositivo.tipo).toBe('facial')
   })
 
   it('baixar de novo reseta a senha do mesmo usuário do Edge (idempotente, sem duplicar)', async () => {
